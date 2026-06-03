@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Where Can I Vend? — NYC Street Vendor Site Selection (Prototype)</title>
+<style>
+  :root{
+    --ink:#11181c; --paper:#f7f4ed; --line:#d8d2c4;
+    --green:#1a7f37; --green-bg:#d7efdc; --green-bg2:#cdebd0;
+    --yellow:#9a6b00; --yellow-bg:#fcefc7;
+    --red:#b42318; --red-bg:#fbe3df;
+    --gray:#5c6670; --gray-bg:#e4e2da;
+    --navy:#0a3d62; --accent:#e8821a;
+    --shadow:0 1px 0 #fff, 0 2px 8px rgba(20,24,28,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    background:var(--paper); color:var(--ink);
+    -webkit-font-smoothing:antialiased; line-height:1.45;
+  }
+  .wrap{max-width:430px;margin:0 auto;min-height:100vh;background:var(--paper);
+    box-shadow:0 0 40px rgba(0,0,0,.08);position:relative;display:flex;flex-direction:column}
+  /* mock banner */
+  .mockban{background:repeating-linear-gradient(45deg,#222,#222 10px,#2b2b2b 10px,#2b2b2b 20px);
+    color:#ffd24a;font-size:11px;letter-spacing:.04em;text-align:center;padding:6px 10px;font-weight:700}
+  header{background:var(--navy);color:#fff;padding:16px 18px 14px;position:relative}
+  header .kicker{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9fc3e0;font-weight:700}
+  header h1{font-size:22px;font-weight:800;margin-top:2px;letter-spacing:-.01em}
+  header .sub{font-size:12.5px;color:#cfe0ee;margin-top:3px}
+  .langbar{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+  .langbar button{background:rgba(255,255,255,.12);border:0;color:#fff;font-size:11px;
+    padding:3px 8px;border-radius:20px;cursor:pointer}
+  .langbar button.on{background:var(--accent);color:#fff;font-weight:700}
+  main{flex:1;padding:16px 16px 90px}
+  .step-dots{display:flex;gap:6px;justify-content:center;margin:4px 0 14px}
+  .step-dots i{width:7px;height:7px;border-radius:50%;background:var(--line);transition:.2s}
+  .step-dots i.on{background:var(--accent);width:20px;border-radius:4px}
+  h2.q{font-size:18px;font-weight:800;margin-bottom:3px;letter-spacing:-.01em}
+  p.qs{font-size:13px;color:var(--gray);margin-bottom:14px}
+  .opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#fff;
+    border:1.5px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;
+    box-shadow:var(--shadow);transition:transform .08s,border-color .12s}
+  .opt:active{transform:scale(.985)}
+  .opt:hover{border-color:var(--navy)}
+  .opt .emoji{font-size:26px;line-height:1;flex:0 0 auto}
+  .opt .ttl{font-size:15px;font-weight:700}
+  .opt .dsc{font-size:12px;color:var(--gray);margin-top:1px}
+  .chip{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;margin-left:6px;vertical-align:middle}
+  .chip.blue{background:#dbeafe;color:#1e40af}.chip.yellow{background:var(--yellow-bg);color:var(--yellow)}
+  .chip.green{background:var(--green-bg2);color:var(--green)}
+  .back{background:none;border:0;color:var(--navy);font-size:13px;font-weight:700;cursor:pointer;
+    margin-bottom:10px;display:inline-flex;align-items:center;gap:5px;padding:4px 0}
+  /* map */
+  .maphead{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px}
+  .maphead .who{font-size:12px;color:var(--gray)}
+  .maphead .who b{color:var(--ink)}
+  .legend{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+  .legend span{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:5px}
+  .legend .sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+  .map{position:relative;width:100%;aspect-ratio:1/1.08;border-radius:14px;overflow:hidden;
+    border:1.5px solid var(--line);box-shadow:var(--shadow);background:#eceae1;touch-action:manipulation}
+  .map svg{display:block;width:100%;height:100%}
+  .cell{cursor:pointer;transition:opacity .12s}
+  .cell:hover{opacity:.82}
+  .cell.sel{stroke:var(--ink);stroke-width:2.4}
+  .pin{font-size:11px;fill:#fff;font-weight:700;pointer-events:none}
+  .maplbl{font-size:9px;fill:#7a7468;font-weight:700;pointer-events:none;letter-spacing:.03em}
+  .feat{pointer-events:none}
+  /* result card */
+  .result{margin-top:14px;border-radius:14px;overflow:hidden;border:1.5px solid var(--line);box-shadow:var(--shadow);background:#fff}
+  .result .top{padding:13px 15px;color:#fff;display:flex;align-items:center;gap:10px}
+  .result .top .badge{font-size:24px}
+  .result .top .verdict{font-size:17px;font-weight:800}
+  .result .top .loc{font-size:11.5px;opacity:.9}
+  .result .body{padding:13px 15px}
+  .rule{display:flex;gap:9px;padding:8px 0;border-bottom:1px solid #efece3;font-size:13px}
+  .rule:last-child{border-bottom:0}
+  .rule .ic{flex:0 0 auto;font-size:15px;width:20px;text-align:center}
+  .rule .tx b{display:block;font-size:12.5px}
+  .rule .tx span{font-size:11.5px;color:var(--gray)}
+  .opcard{background:var(--paper);border-radius:10px;padding:10px 12px;margin-top:10px}
+  .opcard h4{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--gray);margin-bottom:6px}
+  .opcard ul{list-style:none;font-size:12px}
+  .opcard li{padding:3px 0 3px 18px;position:relative}
+  .opcard li:before{content:"›";position:absolute;left:4px;color:var(--accent);font-weight:800}
+  .res-links{margin-top:14px}
+  .res-links a{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);
+    border-radius:12px;padding:11px 13px;margin-bottom:8px;text-decoration:none;color:var(--ink);
+    font-size:13px;font-weight:600;box-shadow:var(--shadow)}
+  .res-links a .arr{margin-left:auto;color:var(--accent);font-weight:800}
+  .res-links a small{display:block;font-weight:400;color:var(--gray);font-size:11px}
+  .disc{font-size:11px;color:var(--gray);background:#fff;border:1px dashed var(--line);
+    border-radius:10px;padding:10px 12px;margin-top:14px;line-height:1.5}
+  footer{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;
+    background:#fff;border-top:1px solid var(--line);display:flex;justify-content:space-around;
+    padding:9px 0 11px}
+  footer button{background:none;border:0;font-size:10.5px;color:var(--gray);font-weight:600;
+    display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+  footer button .fi{font-size:18px}
+  footer button.on{color:var(--navy)}
+  .tap-hint{text-align:center;font-size:11px;color:var(--gray);margin-top:8px;font-style:italic}
+  .pill{font-size:10px;background:var(--gray-bg);color:var(--gray);padding:2px 8px;border-radius:20px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mockban">⚠ PROTOTYPE — ILLUSTRATIVE MOCK DATA, NOT REAL VENDING LOCATIONS</div>
+  <header>
+    <div class="kicker">NYC Office of Street Vendor Services</div>
+    <h1 id="hTitle">Where can I vend?</h1>
+    <div class="sub" id="hSub">Find legal places to set up — tap the map to check a spot.</div>
+    <div class="langbar" id="langbar"></div>
+  </header>
+  <main>
+    <div class="step-dots" id="dots"></div>
+    <div id="view"></div>
+  </main>
+  <footer id="foot"></footer>
+</div>
+
+<script>
+/* ============================================================
+   NYC Street Vendor Site Selection — clickable PROTOTYPE
+   Rule logic mirrors the engineering doc §10 precedence order.
+   ALL geometry below is illustrative mock data on a fake grid.
+   Real version joins to CSCL (DS-013) + the P1 datasets.
+   ============================================================ */
+
+const T = {
+  en:{title:"Where can I vend?",sub:"Find legal places to set up — tap the map to check a spot.",
+      langName:"English"},
+  es:{title:"¿Dónde puedo vender?",sub:"Encuentre lugares legales — toque el mapa para revisar.",langName:"Español"},
+  zh:{title:"我可以在哪里摆摊？",sub:"查找合法地点 — 点击地图查看。",langName:"中文"},
+  bn:{title:"আমি কোথায় বিক্রি করতে পারি?",sub:"আইনি স্থান খুঁজুন — মানচিত্রে আলতো চাপুন।",langName:"বাংলা"},
+  wo:{title:"Fan laa man a jaay?",sub:"Gis fi nga man a jaay — laal kàrt bi.",langName:"Wolof"}
+};
+let lang="en";
+
+// vendor profiles -> license SKUs (from engineer doc §2)
+const PROFILES = {
+  food:{emoji:"🌭",ttl:"Food vendor",dsc:"Carts & trucks — licensed by the Health Dept (DOHMH)",
+    licenses:[
+      {id:"mfv_city",ttl:"Citywide permit",dsc:"All 5 boroughs, year-round"},
+      {id:"mfv_boro",ttl:"Borough-specific permit",dsc:"One outer borough — not Manhattan",chip:["yellow","Outer-boro"]},
+      {id:"mfv_green",ttl:"Green Cart permit",dsc:"Produce only, in assigned precincts",chip:["green","Green Cart"]},
+      {id:"mfv_seasonal",ttl:"Seasonal permit",dsc:"Apr 1 – Oct 31 only"},
+    ]},
+  merch:{emoji:"🧢",ttl:"Merchandise vendor",dsc:"Clothing, art, goods — licensed by DCWP",
+    licenses:[
+      {id:"gv_std",ttl:"Standard license (White)",dsc:"Cannot use C4/C5/C6 zones or Midtown Core"},
+      {id:"gv_yellow",ttl:"Specialized (Yellow)",dsc:"Disabled veterans — citywide incl. commercial zones",chip:["yellow","Yellow"]},
+      {id:"gv_blue",ttl:"Specialized (Blue)",dsc:"Disabled veterans — required for Midtown Core",chip:["blue","Blue"]},
+    ]},
+  firstamd:{emoji:"📚",ttl:"First Amendment vendor",dsc:"Books, art, prints — no license needed",
+    licenses:[
+      {id:"fa",ttl:"First Amendment goods",dsc:"Follows Blue-licensee street rules (per DSNY)"},
+    ]},
+};
+
+/* ---- Mock map: 5x6 grid of "blocks" with planted features ----
+   Each block carries flags the rule engine reads. This is FAKE. */
+const COLS=5, ROWS=6;
+// zone tags per block index (r*COLS+c)
+const MOCK = (()=>{
+  const b=[];
+  for(let i=0;i<COLS*ROWS;i++) b.push({i,flags:{}});
+  const set=(r,c,f)=>Object.assign(b[r*COLS+c].flags,f);
+  // a "park" top-left (out of scope)
+  set(0,0,{park:true}); set(0,1,{park:true}); set(1,0,{park:true});
+  // Midtown Core band (rows 1-2, cols 2-4) -> requires Blue
+  for(const[r,c]of[[1,2],[1,3],[1,4],[2,2],[2,3],[2,4]]) set(r,c,{midtown:true});
+  // C4/C5/C6 commercial corridor (col 1, rows 2-4)
+  for(const r of[2,3,4]) set(r,1,{commercial:true});
+  // WTC hard zone (bottom-left 2 blocks)
+  set(5,0,{wtc:true}); set(5,1,{wtc:true});
+  // DOHMH restricted street (time-based) for food (row3 col3)
+  set(3,3,{mfvRestricted:true});
+  // green cart precinct (row4 col4)
+  set(4,4,{greenZone:true});
+  // subway-entrance buffer blocks (point features) -> prohibited slice
+  set(2,0,{subway:true}); set(4,2,{subway:true});
+  // narrow sidewalk (row5 col4)
+  set(5,4,{narrow:true});
+  // bus stop (row0 col4)
+  set(0,4,{busstop:true});
+  return b;
+})();
+
+/* ---- RULE ENGINE — precedence order from engineer doc §10 ---- */
+function evaluate(block, profile, lic){
+  const f=block.flags;
+  const R=[]; // applied-rule explanations
+  // 1. out of scope
+  if(f.park) return verdict("scope","Park / plaza",
+    [["🌳","Separate permit system","Parks use a DPR concession permit — not covered here."]],profile,lic);
+  // 2. hard prohibition
+  if(f.wtc) return verdict("red","World Trade Center Zone",
+    [["⛔","No vending in this zone","Hard prohibition for all vendors (limited food-truck street exceptions apply elsewhere)."]],profile,lic);
+  // 3. zone exclusion by SKU
+  if(f.midtown){
+    if(lic==="gv_blue"||lic==="fa") R.push(["🔵","Midtown Core — allowed","Your Blue-equivalent license permits vending here."]);
+    else if(profile==="merch") return verdict("red","Midtown Core Zone",
+      [["⛔","Blue license required","Standard & Yellow licenses cannot vend in the Midtown Core. Only Blue (disabled-veteran) licenses can."]],profile,lic);
+  }
+  if(f.commercial){
+    if(profile==="merch" && (lic==="gv_std")) return verdict("red","C4/C5/C6 commercial zone",
+      [["⛔","Standard license not allowed","Only Yellow or Blue specialized licenses may vend in major commercial zones."]],profile,lic);
+    if(profile==="merch") R.push(["🟡","Commercial zone — allowed","Your specialized license is exempt from the C4/C5/C6 exclusion."]);
+  }
+  // borough rule for food
+  if(lic==="mfv_boro") R.push(["🗽","Outer-borough only","This permit can't be used in Manhattan — you'd be fined here."]);
+  // green cart geography
+  if(lic==="mfv_green" && !f.greenZone) return verdict("red","Outside your Green Cart precinct",
+    [["⛔","Wrong precinct","Green Cart permits only work in your assigned precinct."]],profile,lic);
+  if(lic==="mfv_green" && f.greenZone) R.push(["🥬","In your Green Cart precinct","Produce, water & raw nuts only."]);
+  // 4. time-based restriction
+  if(f.mfvRestricted && profile==="food") return verdict("yellow","Restricted street (time limits)",
+    [["⏰","Food vending limited here","DOHMH restricts this street by time/day — e.g. allowed only after 6 pm weekdays. Check exact hours."]],profile,lic,R);
+  // 5. distance buffers
+  if(f.subway) return verdict("red","Too close to a subway entrance",
+    [["🚇","Within 10 ft of subway entrance","Both vendor types must stay 10 ft from subway entrances/exits."]],profile,lic);
+  if(f.busstop) return verdict("red","Bus stop",
+    [["🚌","No vending in a bus stop","Vending is not allowed within a marked bus-stop boundary."]],profile,lic);
+  // 6. sidewalk width
+  if(f.narrow) return verdict("red","Sidewalk too narrow",
+    [["📏","Under 12 ft clear path","A vendor must leave 12 ft of clear sidewalk for pedestrians."]],profile,lic);
+  // 7. permitted
+  return verdict("green","You can vend here",[],profile,lic,R);
+}
+
+function verdict(kind,title,rules,profile,lic,extra){
+  const r=(extra||[]).concat(rules||[]);
+  return {kind,title,rules:r};
+}
+
+const OPRULES=[
+  ["🛞","Set up at the curb","Place your cart on the street side — never against the building."],
+  ["📐","Stay within size limits","Merch: 8 ft along curb, 3 ft deep, 5 ft tall (umbrella may be higher)."],
+  ["🚫","Don't touch street furniture","Nothing can lean on hydrants, lampposts, mailboxes, benches, etc."],
+  ["🕳️","Avoid grates & manholes","No setting up over ventilation grates, cellar doors, or manholes."],
+];
+
+const KIND={
+  green:{c:"var(--green)",bg:"var(--green-bg2)",badge:"✅"},
+  yellow:{c:"var(--yellow)",bg:"var(--yellow-bg)",badge:"⚠️"},
+  red:{c:"var(--red)",bg:"var(--red-bg)",badge:"⛔"},
+  scope:{c:"var(--gray)",bg:"var(--gray-bg)",badge:"➖"},
+};
+const FILL={green:"#9cd6a4",yellow:"#f4d98a",red:"#e8a59c",scope:"#c9c5ba"};
+
+/* ---------- App state & rendering ---------- */
+let step=0, profileKey=null, licId=null, selBlock=null;
+
+function setLang(l){lang=l;render();}
+function go(s){step=s;render();}
+function pickProfile(k){profileKey=k;licId=null;selBlock=null;step=1;render();}
+function pickLic(id){licId=id;selBlock=null;step=2;render();}
+function pickBlock(i){selBlock=i;render();}
+
+function render(){
+  document.getElementById("hTitle").textContent=T[lang].title;
+  document.getElementById("hSub").textContent=T[lang].sub;
+  // lang bar
+  document.getElementById("langbar").innerHTML=Object.keys(T).map(l=>
+    `<button class="${l===lang?'on':''}" onclick="setLang('${l}')">${T[l].langName}</button>`).join("");
+  // dots
+  document.getElementById("dots").innerHTML=[0,1,2].map(d=>`<i class="${d<=step?'on':''}"></i>`).join("");
+  const v=document.getElementById("view");
+  if(step===0) v.innerHTML=viewProfiles();
+  else if(step===1) v.innerHTML=viewLicenses();
+  else v.innerHTML=viewMap();
+  document.getElementById("foot").innerHTML=footer();
+}
+
+function viewProfiles(){
+  return `<h2 class="q">What do you sell?</h2>
+  <p class="qs">This sets which rules apply to you.</p>
+  ${Object.entries(PROFILES).map(([k,p])=>`
+    <button class="opt" onclick="pickProfile('${k}')">
+      <span class="emoji">${p.emoji}</span>
+      <span><span class="ttl">${p.ttl}</span><span class="dsc">${p.dsc}</span></span>
+    </button>`).join("")}
+  <p class="tap-hint">Prototype flow — your real license type tailors the map.</p>`;
+}
+
+function viewLicenses(){
+  const p=PROFILES[profileKey];
+  return `<button class="back" onclick="go(0)">‹ Back</button>
+  <h2 class="q">${p.emoji} What's your license?</h2>
+  <p class="qs">Each license opens up different places.</p>
+  ${p.licenses.map(l=>`
+    <button class="opt" onclick="pickLic('${l.id}')">
+      <span><span class="ttl">${l.ttl}${l.chip?`<span class="chip ${l.chip[0]}">${l.chip[1]}</span>`:""}</span>
+      <span class="dsc">${l.dsc}</span></span>
+    </button>`).join("")}`;
+}
+
+function viewMap(){
+  const p=PROFILES[profileKey];
+  const lic=p.licenses.find(l=>l.id===licId);
+  // build svg grid
+  const W=100,H=108, gw=W/COLS, gh=(H-8)/ROWS, top=8;
+  let cells="";
+  for(const b of MOCK){
+    const c=b.i%COLS, r=(b.i-c)/COLS;
+    const ev=evaluate(b,profileKey,licId);
+    const x=c*gw, y=top+r*gh;
+    const isSel=selBlock===b.i;
+    cells+=`<rect class="cell ${isSel?'sel':''}" x="${x+0.6}" y="${y+0.6}" width="${gw-1.2}" height="${gh-1.2}"
+       rx="1.5" fill="${FILL[ev.kind]}" stroke="${isSel?'':'#cfc9bb'}" stroke-width="0.5"
+       onclick="pickBlock(${b.i})"></rect>`;
+  }
+  // mock feature labels
+  const labels=`
+    <text class="maplbl" x="3" y="6">MOCK MANHATTAN GRID (illustrative)</text>`;
+  let resultHTML="";
+  if(selBlock!==null){
+    const ev=evaluate(MOCK[selBlock],profileKey,licId);
+    const k=KIND[ev.kind];
+    const showOps = ev.kind==="green"||ev.kind==="yellow";
+    resultHTML=`
+    <div class="result">
+      <div class="top" style="background:${k.c}">
+        <span class="badge">${k.badge}</span>
+        <span><span class="verdict">${ev.title}</span>
+        <span class="loc">Mock block #${selBlock} · ${p.ttl} · ${lic.ttl}</span></span>
+      </div>
+      <div class="body">
+        ${ev.rules.length?ev.rules.map(rl=>`
+          <div class="rule"><span class="ic">${rl[0]}</span>
+          <span class="tx"><b>${rl[1]}</b><span>${rl[2]}</span></span></div>`).join("")
+          :`<div class="rule"><span class="ic">👍</span><span class="tx"><b>No blocking rules here</b>
+            <span>This spot passed every check for your license type.</span></span></div>`}
+        ${showOps?`<div class="opcard"><h4>Remember when you set up</h4><ul>
+          ${OPRULES.map(o=>`<li>${o[1]} — ${o[2]}</li>`).join("")}</ul></div>`:""}
+      </div>
+    </div>`;
+  }
+  return `<button class="back" onclick="go(1)">‹ Change license</button>
+  <div class="maphead">
+    <div class="who">Showing rules for<br><b>${p.emoji} ${lic.ttl}</b></div>
+    <span class="pill">${selBlock===null?"Tap a block":"Block #"+selBlock}</span>
+  </div>
+  <div class="legend">
+    <span style="background:var(--green-bg2);color:var(--green)"><i class="sw" style="background:var(--green)"></i>Permitted</span>
+    <span style="background:var(--yellow-bg);color:var(--yellow)"><i class="sw" style="background:var(--yellow)"></i>Restricted</span>
+    <span style="background:var(--red-bg);color:var(--red)"><i class="sw" style="background:var(--red)"></i>Prohibited</span>
+    <span style="background:var(--gray-bg);color:var(--gray)"><i class="sw" style="background:#9b958a"></i>Out of scope</span>
+  </div>
+  <div class="map"><svg viewBox="0 0 100 108" preserveAspectRatio="none">${cells}${labels}</svg></div>
+  <p class="tap-hint">Tap any block to see why it's green, yellow, or red.</p>
+  ${resultHTML}
+  <div class="res-links">
+    <a href="https://www.nyc.gov/site/dsny/what-we-do/cleaning/street-vending-enforcement.page" target="_blank" rel="noopener">
+      📍 <span>Official City vending maps & guides<small>DSNY — General Vendor & Mobile Food maps, 12 languages</small></span><span class="arr">↗</span></a>
+    <a href="${profileKey==='food'?'https://www.nyc.gov/site/doh/business/food-operators/mobile-and-temporary-food-vendors.page':'https://www.nyc.gov/site/dca/businesses/license-checklist-general-vendor.page'}" target="_blank" rel="noopener">
+      📝 <span>Apply for your ${profileKey==='food'?'food vending permit':'vendor license'}<small>${profileKey==='food'?'DOHMH':'DCWP'} application checklist</small></span><span class="arr">↗</span></a>
+    <a href="https://portal.311.nyc.gov/article/?kanumber=KA-02152" target="_blank" rel="noopener">
+      ☎️ <span>Questions about a specific spot?<small>Check with 311 or the agency</small></span><span class="arr">↗</span></a>
+  </div>
+  <div class="disc"><b>This is a prototype.</b> The map uses illustrative mock blocks, not real NYC streets.
+  The real tool draws on official City data (street centerline, DOHMH restricted streets, DCWP restrictions,
+  zoning, subway entrances, and more). Rules can change — always confirm with 311 or the agency before vending.</div>`;
+}
+
+function footer(){
+  const tabs=[["🗺️","Map",2],["📋","My rules",2],["🌐","Languages",0]];
+  return tabs.map((t,idx)=>`<button class="${idx===0?'on':''}" onclick="${idx===2?"document.getElementById('langbar').scrollIntoView()":"go(2)"}">
+    <span class="fi">${t[0]}</span>${t[1]}</button>`).join("");
+}
+
+render();
+</script>
+</body>
+</html>
