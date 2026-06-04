@@ -185,6 +185,12 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
     });
 
     map.on('load', () => {
+      // Strip every basemap text label (place/borough/road names) for a clean, uncluttered map
+      // with no cut-off words — our zones, pins, and hover popups carry the meaning instead.
+      for (const layer of map.getStyle().layers ?? []) {
+        if (layer.type === 'symbol') map.removeLayer(layer.id);
+      }
+
       // Collapse the attribution to a discrete "ⓘ" (expands on click) instead of a long line.
       containerRef.current
         ?.querySelector('.maplibregl-ctrl-attrib')
