@@ -69,7 +69,6 @@ export function VendorResources({ vendorType }: { vendorType: VendorType }) {
           <span className="arr">↗</span>
         </a>
       ))}
-      <p className="res-foot">A guide, not a legal guarantee — confirm with 311 or the agency before you set up.</p>
     </section>
   );
 }

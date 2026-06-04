@@ -107,23 +107,68 @@ main {
   flex: 1;
   padding: 16px 16px 28px;
 }
-.step-dots {
+.stepper {
   display: flex;
-  gap: 6px;
-  justify-content: center;
-  margin: 4px 0 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin: 6px 4px 18px;
 }
-.step-dots i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+.stepper .step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1 1 0;
+  position: relative;
+  gap: 5px;
+}
+/* connector line between steps */
+.stepper .step:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  top: 13px;
+  right: 50%;
+  width: 100%;
+  height: 2px;
   background: var(--line);
-  transition: 0.2s;
+  z-index: 0;
 }
-.step-dots i.on {
+.stepper .step.done:not(:first-child)::before,
+.stepper .step.current:not(:first-child)::before {
   background: var(--accent);
-  width: 20px;
-  border-radius: 4px;
+}
+.stepper .step-num {
+  position: relative;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--line);
+  color: var(--gray);
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stepper .step.done .step-num {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.stepper .step.current .step-num {
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(232, 130, 26, 0.18);
+}
+.stepper .step-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gray);
+}
+.stepper .step.current .step-label,
+.stepper .step.done .step-label {
+  color: var(--ink);
 }
 .intro {
   background: #fff;
@@ -518,6 +563,15 @@ p.qs {
   color: var(--gray);
   margin-top: 6px;
   line-height: 1.5;
+}
+.final-disclaimer {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--gray);
+  text-align: center;
 }
 .layers-details {
   margin-top: 16px;
