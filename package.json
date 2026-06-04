@@ -15,6 +15,9 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
   },
   "dependencies": {
+    "@turf/boolean-point-in-polygon": "^7.3.5",
+    "@turf/distance": "^7.3.5",
+    "@turf/helpers": "^7.3.5",
     "i18next": "^23.15.1",
     "maplibre-gl": "^4.7.1",
     "react": "^18.3.1",
