@@ -5,8 +5,16 @@ const en = {
   appTitle: 'Where can I vend?',
   appSubtitle: 'Tap anywhere to see if you can legally vend there.',
 
+  intro_title: 'Vend legally in New York City',
+  intro_body:
+    'NYC’s vending rules are spread across several agencies and hard to read on the street. This map brings them into one place — set up your vendor profile and see where you can legally vend, configured to your license and the time of day.',
+  intro_step1: 'Tell us your vendor type and license',
+  intro_step2: 'See a map made for your rules',
+  intro_step3: 'Tap any spot — or use your location — to check it',
+  intro_cta: 'Get started',
+
   step_whatSell: 'What do you sell?',
-  step_whatSell_hint: 'This sets which rules apply to you.',
+  step_whatSell_hint: 'This determines which rules apply to you.',
   step_whatLicense: "What's your license?",
   step_whatLicense_hint: 'Each license opens up different places.',
   step_pickBorough: 'Which borough is your permit for?',

@@ -60,12 +60,12 @@
     {
       "type": "Feature",
       "properties": { "kind": "hydrant", "label": "Fire hydrant (illustrative)", "provenance": "illustrative", "dataset": "DS-036", "source": "Illustrative hydrant location pending FDNY/DEP hydrant layer; stay-away distance unverified" },
-      "geometry": { "type": "Polygon", "coordinates": [[[-73.9872,40.7520],[-73.9868,40.7518],[-73.9866,40.7522],[-73.9870,40.7524],[-73.9872,40.7520]]] }
+      "geometry": { "type": "Polygon", "coordinates": [[[-73.9837,40.7239],[-73.9833,40.7239],[-73.9833,40.7241],[-73.9837,40.7241],[-73.9837,40.7239]]] }
     },
     {
       "type": "Feature",
       "properties": { "kind": "scaffolding", "label": "Sidewalk shed (illustrative)", "provenance": "illustrative", "dataset": "DOB", "source": "Illustrative sidewalk shed/scaffolding pending DOB active-shed permits" },
-      "geometry": { "type": "Polygon", "coordinates": [[[-73.9905,40.7505],[-73.9895,40.7501],[-73.9890,40.7510],[-73.9900,40.7514],[-73.9905,40.7505]]] }
+      "geometry": { "type": "Polygon", "coordinates": [[[-73.9822,40.7249],[-73.9818,40.7249],[-73.9818,40.7251],[-73.9822,40.7251],[-73.9822,40.7249]]] }
     }
   ]
 }
