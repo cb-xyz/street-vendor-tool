@@ -7,7 +7,8 @@ import type { EvalTime, VendorConfig, Verdict } from '../engine/types';
 import { NycPilotResolver, type LngLat } from '../data/resolver';
 import { BOROUGHS, NYC_MASK, SUBWAY_ENTRANCES, ZONES } from '../data/nyc';
 import type { LayerStatus } from '../data/layerRegistry';
-import type { VerdictStatus } from '../engine/types';
+import type { LocationFacts, EvalTime as EvalTimeT, VendorConfig as VendorConfigT, VerdictStatus } from '../engine/types';
+import type { ZoneKind } from '../data/nyc';
 import { fromDateTimeInputs, nycNow } from '../state/evalTime';
 import { ResultCard } from './ResultCard';
 import { VendorResources } from './VendorResources';
@@ -30,17 +31,60 @@ const PIN_COLOR: Record<VerdictStatus, string> = {
   outOfScope: '#6b7682',
 };
 
-const ZONE_COLORS: Record<string, string> = {
-  park: '#9b958a',
-  midtownCore: '#1e40af',
-  flushing: '#0e7490',
-  dykerHeights: '#7c3aed',
-  commercial: '#e8821a',
-  greenCart: '#1a7f37',
-  mfvRestricted: '#9a6b00',
-  hydrant: '#b42318',
-  scaffolding: '#7c3aed',
+// Translucent fills by verdict — so the map shows, at a glance, what each zone means for THIS
+// vendor. Permitted areas are left clear (the base map = "generally allowed, still check").
+const ZONE_FILL: Record<VerdictStatus, string> = {
+  prohibited: 'rgba(216,54,42,0.45)',
+  restricted: 'rgba(201,138,0,0.45)',
+  outOfScope: 'rgba(120,130,140,0.40)',
+  permitted: 'rgba(26,127,55,0.38)',
 };
+const CLEAR = 'rgba(0,0,0,0)';
+
+const SAMPLE_MFV_RESTRICTION = {
+  yearRound: true,
+  restrictedWindows: [{ days: [0, 1, 2, 3, 4, 5, 6], startMinutes: 720, endMinutes: 1380 }],
+};
+
+/** Representative facts for a zone kind, so we can ask the engine what colour it should be. */
+function zoneFacts(kind: ZoneKind, config: VendorConfigT): LocationFacts {
+  switch (kind) {
+    case 'park':
+      return { borough: 'Manhattan', inPark: true };
+    case 'midtownCore':
+      return { borough: 'Manhattan', inMidtownCore: true };
+    case 'flushing':
+      return { borough: 'Queens', inFlushingZone: true };
+    case 'dykerHeights':
+      return { borough: 'Brooklyn', inDykerHeights: true };
+    case 'commercial':
+      return { borough: 'Manhattan', zoningDistrict: 'C5' };
+    case 'greenCart':
+      return { borough: 'Bronx', greenCartPrecinct: config.greenCartPrecinct ?? '40' };
+    case 'mfvRestricted':
+      return { borough: 'Manhattan', mfvRestriction: SAMPLE_MFV_RESTRICTION };
+    case 'hydrant':
+      return { borough: 'Manhattan', withinHydrantBuffer: true };
+    case 'scaffolding':
+      return { borough: 'Manhattan', atScaffolding: true };
+  }
+}
+
+const ZONE_KINDS: ZoneKind[] = [
+  'park', 'midtownCore', 'flushing', 'dykerHeights', 'commercial', 'greenCart', 'mfvRestricted', 'hydrant', 'scaffolding',
+];
+
+/** Build a MapLibre `match` expression colouring each zone by its verdict for this vendor+time. */
+function zoneColorExpr(config: VendorConfigT, at: EvalTimeT) {
+  const pairs: string[] = [];
+  for (const kind of ZONE_KINDS) {
+    const status = evaluate(config, zoneFacts(kind, config), at).status;
+    // Leave permitted zones clear, except Green Cart, where the precinct IS the allowed area.
+    const color = status === 'permitted' ? (kind === 'greenCart' ? ZONE_FILL.permitted : CLEAR) : ZONE_FILL[status];
+    pairs.push(kind, color);
+  }
+  return ['match', ['get', 'kind'], ...pairs, CLEAR] as unknown as maplibregl.ExpressionSpecification;
+}
 
 const STATUS_ICON: Record<LayerStatus, string> = {
   live: '✅',
@@ -162,64 +206,62 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
         id: 'zones-fill',
         type: 'fill',
         source: 'zones',
-        paint: {
-          'fill-color': [
-            'match',
-            ['get', 'kind'],
-            'park', ZONE_COLORS.park!,
-            'midtownCore', ZONE_COLORS.midtownCore!,
-            'flushing', ZONE_COLORS.flushing!,
-            'dykerHeights', ZONE_COLORS.dykerHeights!,
-            'commercial', ZONE_COLORS.commercial!,
-            'greenCart', ZONE_COLORS.greenCart!,
-            'mfvRestricted', ZONE_COLORS.mfvRestricted!,
-            'hydrant', ZONE_COLORS.hydrant!,
-            'scaffolding', ZONE_COLORS.scaffolding!,
-            '#888',
-          ],
-          'fill-opacity': 0.28,
-        },
+        paint: { 'fill-color': zoneColorExpr(evalRef.current.config, evalRef.current.at), 'fill-opacity': 1 },
       });
       map.addLayer({
         id: 'zones-outline',
         type: 'line',
         source: 'zones',
-        paint: { 'line-color': '#444', 'line-width': 1, 'line-dasharray': [2, 2] },
+        paint: { 'line-color': 'rgba(60,60,60,0.45)', 'line-width': 1, 'line-dasharray': [2, 2] },
       });
+
+      // Subway entrances are no-vend areas (10 ft). Shown as soft red halos + a solid core.
       map.addSource('subway', { type: 'geojson', data: SUBWAY_ENTRANCES as unknown as GeoJSON.FeatureCollection });
       map.addLayer({
-        id: 'subway-dots',
+        id: 'subway-buffer',
         type: 'circle',
         source: 'subway',
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 1.4, 16, 4.5],
-          'circle-color': '#1f5f8b',
-          'circle-opacity': 0.85,
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 14, 11, 17, 26],
+          'circle-color': '#d8362a',
+          'circle-opacity': 0.18,
+        },
+      });
+      map.addLayer({
+        id: 'subway-core',
+        type: 'circle',
+        source: 'subway',
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 1.4, 16, 4],
+          'circle-color': '#d8362a',
+          'circle-opacity': 0.9,
           'circle-stroke-color': '#ffffff',
           'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 10, 0, 14, 1],
         },
       });
 
-      // Hover a subway entrance → explain what it is and the 10 ft stay-away rule.
+      // Hover a subway entrance → explain the no-vend rule.
       const subwayPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
-      map.on('mouseenter', 'subway-dots', () => {
+      const showPop = (e: maplibregl.MapLayerMouseEvent) => {
         map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mousemove', 'subway-dots', (e) => {
-        const f = e.features?.[0];
-        const name = (f?.properties?.name as string) || '';
+        const name = (e.features?.[0]?.properties?.name as string) || '';
         subwayPopup
           .setLngLat(e.lngLat)
           .setHTML(
-            `<strong>Subway entrance</strong>${name ? `<br><span class="pop-sub">${name}</span>` : ''}` +
-              `<br><span class="pop-warn">Vendors must stay 10 ft away</span>`,
+            `<strong>Subway entrance — no vending</strong>${name ? `<br><span class="pop-sub">${name}</span>` : ''}` +
+              `<br><span class="pop-warn">Stay 10 ft away</span>`,
           )
           .addTo(map);
-      });
-      map.on('mouseleave', 'subway-dots', () => {
+      };
+      const hidePop = () => {
         map.getCanvas().style.cursor = '';
         subwayPopup.remove();
-      });
+      };
+      for (const layer of ['subway-core', 'subway-buffer']) {
+        map.on('mouseenter', layer, showPop);
+        map.on('mousemove', layer, showPop);
+        map.on('mouseleave', layer, hidePop);
+      }
     });
 
     map.on('click', (e) => checkPoint({ lng: e.lngLat.lng, lat: e.lngLat.lat }, map));
@@ -231,12 +273,16 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
     };
   }, []);
 
-  // Re-evaluate the selected point when config or time changes.
+  // When config or time changes: recolour the zones and re-evaluate the selected point.
   useEffect(() => {
-    if (!selected) return;
-    const facts = resolver.resolve(selected.at);
-    const verdict = evaluate(config, facts, at);
-    setSelected((prev) => (prev ? { ...prev, verdict } : prev));
+    const map = mapRef.current;
+    if (map && map.getLayer('zones-fill')) {
+      map.setPaintProperty('zones-fill', 'fill-color', zoneColorExpr(config, at));
+    }
+    if (selected) {
+      const facts = resolver.resolve(selected.at);
+      setSelected((prev) => (prev ? { ...prev, verdict: evaluate(config, facts, at) } : prev));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config, at]);
 
@@ -280,7 +326,10 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       </div>
 
       <div className="map" ref={containerRef} style={{ aspectRatio: '1 / 1.15' }} />
-      <p className="tap-hint">Tap the map — or use the locate button — to check a spot.</p>
+      <p className="tap-hint">
+        Colored areas show where you <b>can’t</b> vend (red), are <b>restricted</b> (yellow), or are
+        <b> out of scope</b> (gray) for this license. Tap any spot for details.
+      </p>
 
       {selected && (
         <ResultCard
