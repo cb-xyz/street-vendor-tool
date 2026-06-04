@@ -199,6 +199,27 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
           'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 10, 0, 14, 1],
         },
       });
+
+      // Hover a subway entrance → explain what it is and the 10 ft stay-away rule.
+      const subwayPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
+      map.on('mouseenter', 'subway-dots', () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+      map.on('mousemove', 'subway-dots', (e) => {
+        const f = e.features?.[0];
+        const name = (f?.properties?.name as string) || '';
+        subwayPopup
+          .setLngLat(e.lngLat)
+          .setHTML(
+            `<strong>Subway entrance</strong>${name ? `<br><span class="pop-sub">${name}</span>` : ''}` +
+              `<br><span class="pop-warn">Vendors must stay 10 ft away</span>`,
+          )
+          .addTo(map);
+      });
+      map.on('mouseleave', 'subway-dots', () => {
+        map.getCanvas().style.cursor = '';
+        subwayPopup.remove();
+      });
     });
 
     map.on('click', (e) => checkPoint({ lng: e.lngLat.lng, lat: e.lngLat.lat }, map));
