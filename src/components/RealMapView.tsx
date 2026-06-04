@@ -5,20 +5,30 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { evaluate } from '../engine/ruleEngine';
 import type { EvalTime, VendorConfig, Verdict } from '../engine/types';
 import { NycPilotResolver, type LngLat } from '../data/resolver';
-import { BOROUGHS, SUBWAY_ENTRANCES, ZONES } from '../data/nyc';
+import { BOROUGHS, NYC_MASK, SUBWAY_ENTRANCES, ZONES } from '../data/nyc';
 import type { LayerStatus } from '../data/layerRegistry';
+import type { VerdictStatus } from '../engine/types';
 import { fromDateTimeInputs, nycNow } from '../state/evalTime';
 import { ResultCard } from './ResultCard';
 import { VendorResources } from './VendorResources';
 
-// OpenFreeMap — open vector tiles, no API key (good for the pilot per CLAUDE.md).
-const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+// OpenFreeMap Positron — clean, modern, minimal vector tiles, no API key / no usage limits.
+const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 const NYC_CENTER: [number, number] = [-73.95, 40.7];
 // Bounding box that keeps the map over NYC (no New Jersey / Long Island / far-out zoom).
 const NYC_BOUNDS: maplibregl.LngLatBoundsLike = [
-  [-74.33, 40.46], // SW
-  [-73.65, 40.94], // NE
+  [-74.27, 40.48], // SW
+  [-73.68, 40.92], // NE
 ];
+// Soft neutral fill for everything outside the five boroughs (the mask).
+const MASK_COLOR = '#dbe2ea';
+
+const PIN_COLOR: Record<VerdictStatus, string> = {
+  permitted: '#1a7f37',
+  restricted: '#c98a00',
+  prohibited: '#d8362a',
+  outOfScope: '#6b7682',
+};
 
 const ZONE_COLORS: Record<string, string> = {
   park: '#9b958a',
@@ -64,6 +74,7 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
+  const markerElRef = useRef<HTMLDivElement | null>(null);
   const resolver = useMemo(() => new NycPilotResolver(), []);
 
   // Time applies to all vendors (food restricted streets/seasonal; merch Dyker Heights).
@@ -87,7 +98,16 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
     const verdict = evaluate(cfg, facts, when);
     const nearestSubwayFt = res.nearestSubwayMeters(ll) / 0.3048;
     setSelected({ at: ll, verdict, nearestSubwayFt });
-    if (!markerRef.current) markerRef.current = new maplibregl.Marker({ color: '#b42318' });
+
+    // Custom, modern pin: a colored dot + ring that reflects the verdict.
+    if (!markerElRef.current) {
+      markerElRef.current = document.createElement('div');
+      markerElRef.current.className = 'svpin';
+    }
+    markerElRef.current.style.setProperty('--pin', PIN_COLOR[verdict.status]);
+    if (!markerRef.current) {
+      markerRef.current = new maplibregl.Marker({ element: markerElRef.current, anchor: 'center' });
+    }
     markerRef.current.setLngLat(ll).addTo(map);
   };
 
@@ -126,12 +146,16 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
         ?.querySelector('.maplibregl-ctrl-attrib')
         ?.classList.remove('maplibregl-compact-show');
 
+      // Opaque mask over everything outside the five boroughs — no New Jersey / Long Island.
+      map.addSource('mask', { type: 'geojson', data: NYC_MASK as unknown as GeoJSON.FeatureCollection });
+      map.addLayer({ id: 'mask-fill', type: 'fill', source: 'mask', paint: { 'fill-color': MASK_COLOR } });
+
       map.addSource('boroughs', { type: 'geojson', data: BOROUGHS as unknown as GeoJSON.FeatureCollection });
       map.addLayer({
         id: 'boroughs-outline',
         type: 'line',
         source: 'boroughs',
-        paint: { 'line-color': '#0a3d62', 'line-width': 1, 'line-opacity': 0.4 },
+        paint: { 'line-color': '#9aa7b4', 'line-width': 1.2 },
       });
       map.addSource('zones', { type: 'geojson', data: ZONES as unknown as GeoJSON.FeatureCollection });
       map.addLayer({
@@ -168,9 +192,11 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
         type: 'circle',
         source: 'subway',
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 1, 16, 4],
-          'circle-color': '#0a3d62',
-          'circle-opacity': 0.5,
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 1.4, 16, 4.5],
+          'circle-color': '#1f5f8b',
+          'circle-opacity': 0.85,
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 10, 0, 14, 1],
         },
       });
     });
@@ -210,7 +236,7 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Time" />
           </>
         )}
-        <span className="timecap">Some rules change by day &amp; time</span>
+        <span className="timecap">Some rules change by time</span>
       </div>
 
       <div className="legend">
@@ -233,7 +259,7 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       </div>
 
       <div className="map" ref={containerRef} style={{ aspectRatio: '1 / 1.15' }} />
-      <p className="tap-hint">Tap anywhere in the five boroughs — or use the locate button — to check a spot.</p>
+      <p className="tap-hint">Tap the map — or use the locate button — to check a spot.</p>
 
       {selected && (
         <ResultCard
@@ -264,10 +290,10 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
             </div>
           ))}
           <p className="mocknote">
-            Subway buffers and borough boundaries use real City data; special zones are encoded from
-            the Admin Code; commercial zoning, parks, Green Cart, DOHMH restricted streets, hydrants
-            and scaffolding are illustrative samples pending licensed City layers. Citywide hydrant
-            and sidewalk coverage needs a spatial-query service in production.
+            Live: subway buffers, borough boundaries. Statutory: special zones (from the Admin Code).
+            Illustrative samples pending licensed City data: zoning, parks, Green Cart, DOHMH
+            restricted streets, hydrants, scaffolding. Citywide hydrant/sidewalk coverage needs a
+            spatial service in production.
           </p>
         </div>
       </details>

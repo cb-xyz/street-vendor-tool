@@ -11,31 +11,28 @@ export function buildReminders(config: VendorConfig): Reason[] {
       icon: '📍',
       code: 'ON_SIDEWALK',
       title: 'Only on the public sidewalk',
-      detail:
-        'Vending is legal only on the public sidewalk — not in the roadway, a driveway, a building entrance, a plaza, or a park. Make sure your exact spot is the sidewalk before you set up.',
+      detail: 'Not the roadway, a driveway, a building entrance, a plaza, or a park. Make sure your spot is the sidewalk.',
       citation: CITES.SIDEWALK_CLEARANCE,
     },
     {
       icon: '🛞',
       code: 'CURB_PLACEMENT',
       title: 'Set up at the curb',
-      detail: 'Place your cart or stand on the street side of the sidewalk — never against the building line.',
+      detail: 'Curb side of the sidewalk — never against the building.',
       citation: CITES.CURB_PLACEMENT,
     },
     {
       icon: '🚫',
       code: 'NO_FURNITURE_CONTACT',
       title: "Don't touch street furniture",
-      detail:
-        'Nothing of yours may touch or lean on lampposts, parking meters, mailboxes, hydrants, tree boxes, benches, bus shelters, trash cans, or barriers.',
+      detail: 'Keep clear of lampposts, meters, hydrants, tree boxes, benches, bus shelters, and trash cans.',
       citation: CITES.NO_FURNITURE_CONTACT,
     },
     {
       icon: '🕳️',
       code: 'NO_GRATES',
       title: 'Avoid grates & manholes',
-      detail:
-        'Do not set up over any ventilation grate, cellar door, manhole, or subway grating. (No citywide map exists for these — check on site.)',
+      detail: "Don't set up over a grate, cellar door, manhole, or subway grating.",
       citation: CITES.NO_GRATES,
     },
   ];
@@ -46,15 +43,14 @@ export function buildReminders(config: VendorConfig): Reason[] {
         icon: '📐',
         code: 'MFV_FOOTPRINT',
         title: 'Cart alignment & cover',
-        detail:
-          'The longest side of the cart must be parallel to the curb, and you must keep a cover (e.g. umbrella) over the food.',
+        detail: 'Longest side parallel to the curb; keep a cover (umbrella) over the food.',
         citation: CITES.MFV_FOOTPRINT,
       },
       {
         icon: '🅿️',
         code: 'METERED_PARKING',
         title: 'No metered spaces',
-        detail: 'If vending from the roadway, you may not operate from a metered parking space.',
+        detail: "If vending from the roadway, don't use a metered parking space.",
         citation: CITES.METERED_PARKING,
       },
     );
@@ -64,8 +60,7 @@ export function buildReminders(config: VendorConfig): Reason[] {
       icon: '📐',
       code: 'GV_FOOTPRINT',
       title: 'Stay within size limits',
-      detail:
-        'Max 8 ft along the curb, 3 ft deep, 5 ft tall (umbrella may be higher). Use a table/rack — no goods on the ground. No electricity or fuel-powered equipment.',
+      detail: 'Max 8 ft × 3 ft, 5 ft tall. Use a table or rack — no goods on the ground. No electricity.',
       citation: CITES.GV_FOOTPRINT,
     });
   }
