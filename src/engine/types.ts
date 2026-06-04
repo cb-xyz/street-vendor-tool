@@ -81,6 +81,9 @@ export interface MfvStreetRestriction {
 export interface LocationFacts {
   borough: Borough;
 
+  // 0. Outside the five boroughs (water, NJ, Long Island) — not covered by this tool.
+  outsideNyc?: boolean;
+
   // 1. Out of scope (gray) — separate licensing regimes, NOT prohibitions.
   inPark?: boolean;
   inPedestrianPlaza?: boolean;
@@ -121,6 +124,8 @@ export interface LocationFacts {
   abutsHospitalNoStanding?: boolean; // both
   inBikeLane?: boolean; // both
   onMedian?: boolean; // both (non-plaza median)
+  withinHydrantBuffer?: boolean; // both — distance UNVERIFIED (see hydrant rule)
+  atScaffolding?: boolean; // both — sidewalk shed may obstruct the spot (advisory)
 
   // 6. Sidewalk width — clear pedestrian path in feet.
   sidewalkClearFt?: number;

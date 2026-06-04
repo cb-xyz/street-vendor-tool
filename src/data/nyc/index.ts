@@ -21,7 +21,9 @@ export type ZoneKind =
   | 'dykerHeights'
   | 'commercial'
   | 'greenCart'
-  | 'mfvRestricted';
+  | 'mfvRestricted'
+  | 'hydrant'
+  | 'scaffolding';
 
 export type Provenance = 'real' | 'statutory' | 'illustrative';
 

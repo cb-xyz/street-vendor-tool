@@ -15,7 +15,7 @@ import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 import distance from '@turf/distance';
 import { point, polygon, multiPolygon } from '@turf/helpers';
 import type { Feature, MultiPolygon, Polygon } from 'geojson';
-import type { Borough, LocationFacts } from '../engine/types';
+import type { LocationFacts } from '../engine/types';
 import { BOROUGHS, SUBWAY_ENTRANCES, ZONES } from './nyc';
 import { LAYER_REGISTRY, PENDING_LAYERS, type LayerInfo } from './layerRegistry';
 
@@ -52,14 +52,13 @@ export class NycPilotResolver implements FactResolver {
     const mockLayers: string[] = [COVERAGE_NOTE];
 
     // --- Borough (live) ---
-    let borough: Borough = 'Manhattan';
     const hit = this.boroughPolys.find((b) => booleanPointInPolygon(pt, b.geom));
-    if (hit) {
-      borough = hit.borough;
-    } else {
-      mockLayers.push('Point is outside the five boroughs — borough-specific results may not apply.');
+    const facts: LocationFacts = { borough: hit ? hit.borough : 'Manhattan', mockLayers };
+    if (!hit) {
+      // Water / New Jersey / Long Island — out of scope (handled by the engine).
+      facts.outsideNyc = true;
+      return facts;
     }
-    const facts: LocationFacts = { borough, mockLayers };
 
     // --- Special zones (statutory) + illustrative placeholders ---
     for (const { props, geom } of this.zonePolys) {
@@ -85,6 +84,12 @@ export class NycPilotResolver implements FactResolver {
           break;
         case 'mfvRestricted':
           if (props.restriction) facts.mfvRestriction = props.restriction;
+          break;
+        case 'hydrant':
+          facts.withinHydrantBuffer = true;
+          break;
+        case 'scaffolding':
+          facts.atScaffolding = true;
           break;
       }
       if (props.provenance !== 'real') mockLayers.push(`${props.label} — ${props.source}`);

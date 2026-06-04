@@ -8,6 +8,14 @@ import type { Reason, VendorConfig } from './types';
 export function buildReminders(config: VendorConfig): Reason[] {
   const common: Reason[] = [
     {
+      icon: '📍',
+      code: 'ON_SIDEWALK',
+      title: 'Only on the public sidewalk',
+      detail:
+        'Vending is legal only on the public sidewalk — not in the roadway, a driveway, a building entrance, a plaza, or a park. Make sure your exact spot is the sidewalk before you set up.',
+      citation: CITES.SIDEWALK_CLEARANCE,
+    },
+    {
       icon: '🛞',
       code: 'CURB_PLACEMENT',
       title: 'Set up at the curb',

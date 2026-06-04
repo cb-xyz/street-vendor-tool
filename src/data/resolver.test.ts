@@ -66,6 +66,17 @@ describe('NycPilotResolver — citywide', () => {
     expect(evaluate({ vendorType: 'food', license: 'citywide' }, facts).status).toBe('restricted');
   });
 
+  it('marks a point in the water / outside the boroughs as outside NYC', () => {
+    const facts = resolver.resolve({ lng: -74.04, lat: 40.6 }); // Upper NY Bay
+    expect(facts.outsideNyc).toBe(true);
+    expect(evaluate({ vendorType: 'merch', license: 'standard' }, facts).status).toBe('outOfScope');
+  });
+
+  it('detects the illustrative hydrant and scaffolding samples', () => {
+    expect(resolver.resolve({ lng: -73.9869, lat: 40.7521 }).withinHydrantBuffer).toBe(true);
+    expect(resolver.resolve({ lng: -73.9898, lat: 40.7508 }).atScaffolding).toBe(true);
+  });
+
   it('always surfaces the partial-coverage note listing pending layers', () => {
     const facts = resolver.resolve({ lng: -73.99, lat: 40.72 });
     expect(facts.mockLayers?.some((l) => /Pilot coverage is partial/.test(l))).toBe(true);

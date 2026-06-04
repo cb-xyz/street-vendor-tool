@@ -41,6 +41,42 @@ describe('precedence — stop at first match', () => {
   });
 });
 
+describe('0. outside NYC', () => {
+  it('outside the five boroughs → out of scope, not permitted', () => {
+    const v = evaluate(gvStandard, { ...base, outsideNyc: true });
+    expect(v.status).toBe('outOfScope');
+    expect(v.reasons[0]?.code).toBe('OUTSIDE_NYC');
+  });
+});
+
+describe('hydrant + scaffolding (#7)', () => {
+  it('hydrant buffer → prohibited and flagged unverified (distance unconfirmed)', () => {
+    const v = evaluate(foodCitywide, { ...clearSpot, withinHydrantBuffer: true });
+    expect(v.status).toBe('prohibited');
+    expect(v.unverified).toBe(true);
+    expect(v.reasons[0]?.code).toBe('HYDRANT');
+  });
+
+  it('scaffolding → restricted advisory, not a hard prohibition', () => {
+    const v = evaluate(gvStandard, { ...clearSpot, atScaffolding: true });
+    expect(v.status).toBe('restricted');
+    expect(v.reasons[0]?.code).toBe('SCAFFOLDING');
+  });
+
+  it('a redder buffer still beats the scaffolding advisory', () => {
+    const v = evaluate(gvStandard, { ...clearSpot, atScaffolding: true, withinSubwayBuffer: true });
+    expect(v.status).toBe('prohibited');
+  });
+});
+
+describe('placement caveat (#2)', () => {
+  it('every permitted verdict reminds the vendor it must be the sidewalk', () => {
+    const v = evaluate(gvStandard, clearSpot);
+    expect(v.status).toBe('permitted');
+    expect(v.reminders.some((r) => r.code === 'ON_SIDEWALK')).toBe(true);
+  });
+});
+
 describe('2. WTC hard prohibition (C-1 — flagged unverified)', () => {
   it('absolute segment → prohibited and unverified', () => {
     const v = evaluate(foodCitywide, { ...base, inWtcAbsoluteSegment: true });
