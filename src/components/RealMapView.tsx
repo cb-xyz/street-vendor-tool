@@ -327,7 +327,7 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       <VendorResources vendorType={config.vendorType} />
 
       <details className="layers-details">
-        <summary>Data layers &amp; coverage (for reviewers)</summary>
+        <summary>Data sources &amp; coverage</summary>
         <div className="opcard">
           {resolver.layers().map((l) => (
             <div className="rule" key={l.id}>
@@ -351,6 +351,12 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
           </p>
         </div>
       </details>
+
+      <p className="final-disclaimer">
+        This tool is a guide to help you find legal places to vend — it is not a legal guarantee.
+        Rules can change and some spots need judgment, so always confirm with NYC 311 or the relevant
+        City agency before you set up.
+      </p>
     </>
   );
 }

@@ -13,8 +13,13 @@ const en = {
   intro_step3: 'Tap any spot — or use your location — to check it',
   intro_cta: 'Get started',
 
+  nav_vendor: 'Vendor',
+  nav_license: 'License',
+  nav_map: 'Map',
+
   step_whatSell: 'What do you sell?',
   step_whatSell_hint: 'This determines which rules apply to you.',
+  step_pickBorough_hint: 'Borough permits are valid in one borough only — not Manhattan.',
   step_whatLicense: "What's your license?",
   step_whatLicense_hint: 'Each license opens up different places.',
   step_pickBorough: 'Which borough is your permit for?',

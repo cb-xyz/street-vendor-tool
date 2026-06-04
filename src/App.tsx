@@ -50,11 +50,17 @@ export default function App() {
       </header>
 
       <main>
-        <div className="step-dots">
-          {[0, 1, 2].map((d) => (
-            <i key={d} className={d <= step ? 'on' : ''} />
+        <nav className="stepper" aria-label="Progress">
+          {[t('nav_vendor'), t('nav_license'), t('nav_map')].map((label, i) => (
+            <div
+              key={label}
+              className={`step ${i < step ? 'done' : ''} ${i === step ? 'current' : ''}`}
+            >
+              <span className="step-num">{i < step ? '✓' : i + 1}</span>
+              <span className="step-label">{label}</span>
+            </div>
           ))}
-        </div>
+        </nav>
 
         {step === 0 && (
           <>
@@ -90,7 +96,7 @@ export default function App() {
             onPickBorough={(b) => update({ permittedBorough: b })}
             onPickPrecinct={(p) => update({ greenCartPrecinct: p })}
             onBackToType={() => reset({})}
-            currentLicense={config.license}
+            onBackToLicenseList={() => reset({ vendorType: typeOpt.id })}
           />
         )}
 
@@ -122,24 +128,24 @@ export default function App() {
 
 interface StepLicenseProps {
   typeId: VendorType;
-  currentLicense?: LicenseSubType;
   needsBorough: boolean;
   needsPrecinct: boolean;
   onPickLicense: (id: LicenseSubType) => void;
   onPickBorough: (b: Borough) => void;
   onPickPrecinct: (p: string) => void;
   onBackToType: () => void;
+  onBackToLicenseList: () => void;
 }
 
 function StepLicense({
   typeId,
-  currentLicense,
   needsBorough,
   needsPrecinct,
   onPickLicense,
   onPickBorough,
   onPickPrecinct,
   onBackToType,
+  onBackToLicenseList,
 }: StepLicenseProps) {
   const { t } = useTranslation();
   const type = findVendorType(typeId)!;
@@ -147,11 +153,11 @@ function StepLicense({
   if (needsBorough) {
     return (
       <>
-        <button className="back" onClick={() => onPickLicense(currentLicense!)}>
+        <button className="back" onClick={onBackToLicenseList}>
           ‹ {t('back')}
         </button>
         <h2 className="q">{t('step_pickBorough')}</h2>
-        <p className="qs">{type.emoji} {type.title}</p>
+        <p className="qs">{t('step_pickBorough_hint')}</p>
         {OUTER_BOROUGHS.map((b) => (
           <button key={b} className="opt" onClick={() => onPickBorough(b)}>
             <span className="emoji">🗽</span>
@@ -167,7 +173,7 @@ function StepLicense({
   if (needsPrecinct) {
     return (
       <>
-        <button className="back" onClick={() => onPickLicense(currentLicense!)}>
+        <button className="back" onClick={onBackToLicenseList}>
           ‹ {t('back')}
         </button>
         <h2 className="q">{t('step_pickPrecinct')}</h2>
