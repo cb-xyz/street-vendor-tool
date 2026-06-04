@@ -72,9 +72,16 @@ describe('NycPilotResolver — citywide', () => {
     expect(evaluate({ vendorType: 'merch', license: 'standard' }, facts).status).toBe('outOfScope');
   });
 
-  it('detects the illustrative hydrant and scaffolding samples', () => {
-    expect(resolver.resolve({ lng: -73.9835, lat: 40.724 }).withinHydrantBuffer).toBe(true);
+  it('detects a real fire hydrant (pilot) and the illustrative scaffolding sample', () => {
+    // Sitting on a real hydrant point from the bundled pilot subset.
+    expect(resolver.resolve({ lng: -73.976974, lat: 40.720074 }).withinHydrantBuffer).toBe(true);
     expect(resolver.resolve({ lng: -73.982, lat: 40.725 }).atScaffolding).toBe(true);
+  });
+
+  it('detects a real park (citywide) as out of scope', () => {
+    const facts = resolver.resolve({ lng: -73.88432, lat: 40.6443 });
+    expect(facts.inPark).toBe(true);
+    expect(evaluate({ vendorType: 'merch', license: 'standard' }, facts).status).toBe('outOfScope');
   });
 
   it('always surfaces the partial-coverage note listing pending layers', () => {

@@ -24,6 +24,7 @@ const es: Strings = {
   showingRulesFor: 'Mostrando reglas para',
   view_live: 'Ahora',
   view_planning: 'Día y hora',
+  legend_allowed: 'Permitido vender',
   legend_noVending: 'Prohibido vender',
   legend_restricted: 'Restringido',
   legend_outOfScope: 'Fuera de alcance',

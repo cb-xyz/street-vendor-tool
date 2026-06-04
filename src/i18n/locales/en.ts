@@ -31,6 +31,7 @@ const en = {
   view_live: 'Now',
   view_planning: 'Day & time',
 
+  legend_allowed: 'Allowed to vend',
   legend_noVending: 'No vending',
   legend_restricted: 'Restricted',
   legend_outOfScope: 'Out of scope',

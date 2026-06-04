@@ -24,6 +24,7 @@ const ar: Strings = {
   showingRulesFor: 'عرض القواعد لـ',
   view_live: 'الآن',
   view_planning: 'اليوم والوقت',
+  legend_allowed: 'يُسمح بالبيع',
   legend_noVending: 'ممنوع البيع',
   legend_restricted: 'مقيّد',
   legend_outOfScope: 'خارج النطاق',

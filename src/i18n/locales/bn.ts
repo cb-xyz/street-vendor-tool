@@ -24,6 +24,7 @@ const bn: Strings = {
   showingRulesFor: 'নিয়ম দেখানো হচ্ছে:',
   view_live: 'এখন',
   view_planning: 'দিন ও সময়',
+  legend_allowed: 'বিক্রি অনুমোদিত',
   legend_noVending: 'বিক্রি নিষেধ',
   legend_restricted: 'সীমাবদ্ধ',
   legend_outOfScope: 'আওতার বাইরে',

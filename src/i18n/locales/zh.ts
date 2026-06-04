@@ -24,6 +24,7 @@ const zh: Strings = {
   showingRulesFor: '显示适用规则：',
   view_live: '现在',
   view_planning: '日期和时间',
+  legend_allowed: '允许摆摊',
   legend_noVending: '禁止摆摊',
   legend_restricted: '受限',
   legend_outOfScope: '不在范围内',

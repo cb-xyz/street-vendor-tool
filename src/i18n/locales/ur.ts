@@ -24,6 +24,7 @@ const ur: Strings = {
   showingRulesFor: 'قواعد دکھائے جا رہے ہیں:',
   view_live: 'ابھی',
   view_planning: 'دن اور وقت',
+  legend_allowed: 'فروخت کی اجازت',
   legend_noVending: 'فروخت ممنوع',
   legend_restricted: 'محدود',
   legend_outOfScope: 'دائرہ کار سے باہر',

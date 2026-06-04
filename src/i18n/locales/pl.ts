@@ -24,6 +24,7 @@ const pl: Strings = {
   showingRulesFor: 'Pokazane zasady dla',
   view_live: 'Teraz',
   view_planning: 'Dzień i godzina',
+  legend_allowed: 'Sprzedaż dozwolona',
   legend_noVending: 'Zakaz sprzedaży',
   legend_restricted: 'Ograniczone',
   legend_outOfScope: 'Poza zakresem',

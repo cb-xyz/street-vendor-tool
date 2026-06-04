@@ -13,6 +13,9 @@ import subwayRaw from './subwayEntrances.geojson?raw';
 import zonesRaw from './zones.geojson?raw';
 import boroughsRaw from './boroughs.geojson?raw';
 import maskRaw from './mask.geojson?raw';
+import sidewalksRaw from './sidewalksAllowed.geojson?raw';
+import hydrantsRaw from './hydrants.geojson?raw';
+import parksRaw from './parks.geojson?raw';
 import type { Borough, DayWindow } from '../../engine/types';
 
 export type ZoneKind =
@@ -60,3 +63,12 @@ export const ZONES = JSON.parse(zonesRaw) as FC<PolygonFeature<ZoneProperties>>;
 export const BOROUGHS = JSON.parse(boroughsRaw) as FC<PolygonFeature<{ borough: Borough }>>;
 /** Everything OUTSIDE the five boroughs — drawn as an opaque mask so non-NYC land never shows. */
 export const NYC_MASK = JSON.parse(maskRaw) as FC<PolygonFeature<Record<string, never>>>;
+/** REAL allowed-to-vend areas: DCP sidewalk polygons (vfx9-tbb6) clipped to the East Village
+ *  pilot, minus 10 ft buffers around subway entrances + hydrants. */
+export const SIDEWALKS_ALLOWED = JSON.parse(sidewalksRaw) as FC<PolygonFeature<Record<string, never>>>;
+/** REAL fire hydrants (NYCDEP 6pui-xhxz), East Village pilot subset. */
+export const HYDRANTS = JSON.parse(hydrantsRaw) as FC<PointFeature>;
+/** REAL parks citywide (Parks Properties enfh-gkve), simplified — out-of-scope mask. */
+export const PARKS = JSON.parse(parksRaw) as FC<PolygonFeature<Record<string, never>>>;
+/** Center of the pilot, so the map opens where the real green sidewalk data lives. */
+export const PILOT_CENTER: [number, number] = [-73.983, 40.7244];

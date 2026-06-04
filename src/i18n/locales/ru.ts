@@ -24,6 +24,7 @@ const ru: Strings = {
   showingRulesFor: 'Показаны правила для',
   view_live: 'Сейчас',
   view_planning: 'День и время',
+  legend_allowed: 'Торговля разрешена',
   legend_noVending: 'Торговля запрещена',
   legend_restricted: 'Ограничено',
   legend_outOfScope: 'Вне области',
