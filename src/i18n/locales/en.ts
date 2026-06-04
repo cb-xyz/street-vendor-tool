@@ -1,9 +1,9 @@
 /** English base strings. Other Local Law 30 languages fall back to these until translated. */
 const en = {
-  mockBanner: '⚠ PROTOTYPE — ILLUSTRATIVE MOCK DATA, NOT REAL VENDING LOCATIONS',
+  mockBanner: 'PROTOTYPE · sample data — not official vending locations yet',
   agency: 'NYC Office of Street Vendor Services',
   appTitle: 'Where can I vend?',
-  appSubtitle: 'Find legal places to set up — tap the map to check a spot.',
+  appSubtitle: 'Tap anywhere to see if you can legally vend there.',
 
   step_whatSell: 'What do you sell?',
   step_whatSell_hint: 'This sets which rules apply to you.',
@@ -25,11 +25,10 @@ const en = {
   showingRulesFor: 'Showing rules for',
 
   view_live: 'Now',
-  view_planning: 'Plan a time',
+  view_planning: 'Day & time',
 
-  unverifiedBanner:
-    'This result depends on a rule still being confirmed with City legal staff. Treat it as provisional.',
-  remindersHeading: 'Remember when you set up',
+  unverifiedBanner: 'Provisional — this rule is still being confirmed with City legal staff.',
+  remindersHeading: 'Before you set up',
 
   disclaimerTitle: 'This is a prototype.',
   disclaimer:

@@ -12,6 +12,7 @@
 import subwayRaw from './subwayEntrances.geojson?raw';
 import zonesRaw from './zones.geojson?raw';
 import boroughsRaw from './boroughs.geojson?raw';
+import maskRaw from './mask.geojson?raw';
 import type { Borough, DayWindow } from '../../engine/types';
 
 export type ZoneKind =
@@ -57,3 +58,5 @@ interface FC<F> {
 export const SUBWAY_ENTRANCES = JSON.parse(subwayRaw) as FC<PointFeature>;
 export const ZONES = JSON.parse(zonesRaw) as FC<PolygonFeature<ZoneProperties>>;
 export const BOROUGHS = JSON.parse(boroughsRaw) as FC<PolygonFeature<{ borough: Borough }>>;
+/** Everything OUTSIDE the five boroughs — drawn as an opaque mask so non-NYC land never shows. */
+export const NYC_MASK = JSON.parse(maskRaw) as FC<PolygonFeature<Record<string, never>>>;
