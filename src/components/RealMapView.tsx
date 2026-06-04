@@ -16,6 +16,37 @@ import { VendorResources } from './VendorResources';
 // OpenFreeMap Positron — clean, modern, minimal vector tiles, no API key / no usage limits.
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 const NYC_CENTER: [number, number] = [-73.95, 40.7];
+
+/** Bounding box [[minLng,minLat],[maxLng,maxLat]] of any GeoJSON polygon/multipolygon coords. */
+function coordsBounds(coords: unknown): [[number, number], [number, number]] {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const walk = (c: unknown) => {
+    if (Array.isArray(c) && typeof c[0] === 'number') {
+      const [x, y] = c as [number, number];
+      minX = Math.min(minX, x); minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+    } else if (Array.isArray(c)) {
+      c.forEach(walk);
+    }
+  };
+  walk(coords);
+  return [[minX, minY], [maxX, maxY]];
+}
+
+/** Where the map should open, based on the configured permit (borough or Green Cart precinct). */
+function initialBounds(config: VendorConfig): [[number, number], [number, number]] | null {
+  if (config.permittedBorough) {
+    const f = BOROUGHS.features.find((b) => b.properties.borough === config.permittedBorough);
+    return f ? coordsBounds(f.geometry.coordinates) : null;
+  }
+  if (config.greenCartPrecinct) {
+    const f = ZONES.features.find(
+      (z) => z.properties.kind === 'greenCart' && z.properties.precinct === config.greenCartPrecinct,
+    );
+    return f ? coordsBounds(f.geometry.coordinates) : null;
+  }
+  return null;
+}
 // Bounding box that keeps the map over NYC (no New Jersey / Long Island / far-out zoom).
 const NYC_BOUNDS: maplibregl.LngLatBoundsLike = [
   [-74.27, 40.48], // SW
@@ -168,6 +199,11 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       attributionControl: false,
     });
     mapRef.current = map;
+
+    // Open centered on the configured borough / Green Cart precinct, when relevant.
+    const bounds = initialBounds(config);
+    if (bounds) map.fitBounds(bounds, { padding: 24, duration: 0, maxZoom: 14 });
+
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
     map.addControl(
       new maplibregl.AttributionControl({ compact: true, customAttribution: '© OpenStreetMap' }),
