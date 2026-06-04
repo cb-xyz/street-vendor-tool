@@ -170,6 +170,16 @@ main {
 .stepper .step.done .step-label {
   color: var(--ink);
 }
+.draft-note {
+  font-size: 11px;
+  color: #7a5200;
+  background: #fff7e6;
+  border: 1px solid #f0d79a;
+  border-radius: 8px;
+  padding: 7px 10px;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
 .intro {
   background: #fff;
   border: 1px solid var(--line);
@@ -224,6 +234,8 @@ main {
 }
 .maploading {
   display: flex;
+  flex-direction: column;
+  gap: 12px;
   align-items: center;
   justify-content: center;
   aspect-ratio: 1 / 1.15;
@@ -232,6 +244,63 @@ main {
   background: var(--mask-bg, #dbe2ea);
   color: var(--gray);
   font-size: 13px;
+}
+.spinner {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid rgba(10, 61, 98, 0.18);
+  border-top-color: var(--navy);
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}
+.appfoot {
+  max-width: 430px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 14px 16px 28px;
+  display: flex;
+  justify-content: center;
+}
+.feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 22px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: var(--shadow);
+}
+.feedback-btn:hover {
+  border-color: var(--navy);
+}
+/* Accessibility: visible focus + comfortable tap targets */
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.langbar button {
+  min-height: 28px;
+}
+.toggle button,
+.back {
+  min-height: 40px;
 }
 h2.q {
   font-size: 18px;
@@ -248,6 +317,7 @@ p.qs {
   align-items: center;
   gap: 12px;
   width: 100%;
+  min-height: 68px;
   text-align: left;
   background: #fff;
   border: 1.5px solid var(--line);
@@ -262,6 +332,10 @@ p.qs {
 }
 .opt:active {
   transform: scale(0.985);
+}
+/* Vendor-type cards: fixed equal height regardless of description length. */
+.vt-opt {
+  min-height: 88px;
 }
 .opt:hover {
   border-color: var(--navy);

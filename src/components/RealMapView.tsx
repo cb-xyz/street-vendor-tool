@@ -303,7 +303,7 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       <div className="legend">
         <span style={{ background: 'var(--red-bg)', color: 'var(--red)' }}>
           <i className="sw" style={{ background: 'var(--red)' }} />
-          No vending
+          {t('legend_noVending')}
         </span>
         <span style={{ background: 'var(--yellow-bg)', color: 'var(--yellow)' }}>
           <i className="sw" style={{ background: 'var(--yellow)' }} />
@@ -316,10 +316,7 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       </div>
 
       <div className="map" ref={containerRef} style={{ aspectRatio: '1 / 1.15' }} />
-      <p className="tap-hint">
-        Colored areas are where you <b>can’t</b> vend (red), are <b>restricted</b> (yellow), or
-        <b> out of scope</b> (gray). Everywhere else is generally allowed — tap any spot to check.
-      </p>
+      <p className="tap-hint">{t('map_tapHint')}</p>
 
       {selected && (
         <ResultCard

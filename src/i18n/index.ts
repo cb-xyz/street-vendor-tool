@@ -7,6 +7,19 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import en from './locales/en';
+import es from './locales/es';
+import zh from './locales/zh';
+import ru from './locales/ru';
+import bn from './locales/bn';
+import ht from './locales/ht';
+import ko from './locales/ko';
+import ar from './locales/ar';
+import ur from './locales/ur';
+import fr from './locales/fr';
+import pl from './locales/pl';
+import wo from './locales/wo';
+
+const RTL = new Set(['ar', 'ur']);
 
 /** Local Law 30 citywide languages + Wolof. label = endonym shown in the language switcher. */
 export const SUPPORTED_LANGUAGES: { code: string; label: string }[] = [
@@ -25,17 +38,31 @@ export const SUPPORTED_LANGUAGES: { code: string; label: string }[] = [
 ];
 
 void i18n.use(initReactI18next).init({
-  resources: { en: { translation: en } },
+  resources: {
+    en: { translation: en },
+    es: { translation: es },
+    zh: { translation: zh },
+    ru: { translation: ru },
+    bn: { translation: bn },
+    ht: { translation: ht },
+    ko: { translation: ko },
+    ar: { translation: ar },
+    ur: { translation: ur },
+    fr: { translation: fr },
+    pl: { translation: pl },
+    wo: { translation: wo },
+  },
   lng: 'en',
   fallbackLng: 'en',
   interpolation: { escapeValue: false },
-  // Other languages intentionally unregistered until translations are delivered; i18next
-  // falls back to English so no UI string is ever missing.
+  // Non-English translations are DRAFT and fall back to English for any missing key.
 });
 
-// Keep <html lang> in sync with the active language (accessibility / screen readers).
+// Keep <html lang> + text direction in sync with the active language (accessibility / RTL).
 i18n.on('languageChanged', (lng) => {
-  if (typeof document !== 'undefined') document.documentElement.lang = lng;
+  if (typeof document === 'undefined') return;
+  document.documentElement.lang = lng;
+  document.documentElement.dir = RTL.has(lng) ? 'rtl' : 'ltr';
 });
 
 export default i18n;
