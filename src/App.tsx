@@ -99,7 +99,7 @@ export default function App() {
               </div>
               <div className="toggle">
                 <button className={surface === 'manhattan' ? 'on' : ''} onClick={() => setSurface('manhattan')}>
-                  Manhattan
+                  NYC map
                 </button>
                 <button className={surface === 'demo' ? 'on' : ''} onClick={() => setSurface('demo')}>
                   Demo grid

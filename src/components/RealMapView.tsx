@@ -4,19 +4,31 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { evaluate } from '../engine/ruleEngine';
 import type { EvalTime, VendorConfig, Verdict } from '../engine/types';
-import { ManhattanPilotResolver, type LngLat } from '../data/resolver';
-import { SUBWAY_ENTRANCES, ZONES } from '../data/manhattan';
+import { NycPilotResolver, type LngLat } from '../data/resolver';
+import { BOROUGHS, SUBWAY_ENTRANCES, ZONES } from '../data/nyc';
+import type { LayerStatus } from '../data/layerRegistry';
 import { fromDateTimeInputs, nycNow } from '../state/evalTime';
 import { ResultCard } from './ResultCard';
 
 // OpenFreeMap — open vector tiles, no API key (good for the pilot per CLAUDE.md).
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
-const MANHATTAN_CENTER: [number, number] = [-73.9785, 40.7549];
+const NYC_CENTER: [number, number] = [-73.95, 40.7];
 
 const ZONE_COLORS: Record<string, string> = {
   park: '#9b958a',
   midtownCore: '#1e40af',
+  flushing: '#0e7490',
+  dykerHeights: '#7c3aed',
   commercial: '#e8821a',
+  greenCart: '#1a7f37',
+  mfvRestricted: '#9a6b00',
+};
+
+const STATUS_ICON: Record<LayerStatus, string> = {
+  live: '✅',
+  statutory: '📐',
+  illustrative: '🧪',
+  pending: '⏳',
 };
 
 interface Props {
@@ -44,7 +56,7 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
-  const resolver = useMemo(() => new ManhattanPilotResolver(), []);
+  const resolver = useMemo(() => new NycPilotResolver(), []);
 
   const isFood = config.vendorType === 'food';
   const [mode, setMode] = useState<'live' | 'planning'>('live');
@@ -58,25 +70,31 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
     return mode === 'live' ? nycNow() : fromDateTimeInputs(date, time);
   }, [isFood, mode, date, time]);
 
-  // Keep the freshest evaluate() inputs available to the (stable) map click handler.
   const evalRef = useRef({ config, at, resolver });
   evalRef.current = { config, at, resolver };
 
-  // Initialise the map once.
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: STYLE_URL,
-      center: MANHATTAN_CENTER,
-      zoom: 13.2,
+      center: NYC_CENTER,
+      zoom: 9.7,
       attributionControl: { compact: true },
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
 
     map.on('load', () => {
-      map.addSource('zones', { type: 'geojson', data: ZONES as GeoJSON.FeatureCollection });
+      map.addSource('boroughs', { type: 'geojson', data: BOROUGHS as unknown as GeoJSON.FeatureCollection });
+      map.addLayer({
+        id: 'boroughs-outline',
+        type: 'line',
+        source: 'boroughs',
+        paint: { 'line-color': '#0a3d62', 'line-width': 1, 'line-opacity': 0.4 },
+      });
+
+      map.addSource('zones', { type: 'geojson', data: ZONES as unknown as GeoJSON.FeatureCollection });
       map.addLayer({
         id: 'zones-fill',
         type: 'fill',
@@ -85,15 +103,16 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
           'fill-color': [
             'match',
             ['get', 'kind'],
-            'park',
-            ZONE_COLORS.park!,
-            'midtownCore',
-            ZONE_COLORS.midtownCore!,
-            'commercial',
-            ZONE_COLORS.commercial!,
+            'park', ZONE_COLORS.park!,
+            'midtownCore', ZONE_COLORS.midtownCore!,
+            'flushing', ZONE_COLORS.flushing!,
+            'dykerHeights', ZONE_COLORS.dykerHeights!,
+            'commercial', ZONE_COLORS.commercial!,
+            'greenCart', ZONE_COLORS.greenCart!,
+            'mfvRestricted', ZONE_COLORS.mfvRestricted!,
             '#888',
           ],
-          'fill-opacity': 0.22,
+          'fill-opacity': 0.28,
         },
       });
       map.addLayer({
@@ -102,15 +121,16 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
         source: 'zones',
         paint: { 'line-color': '#444', 'line-width': 1, 'line-dasharray': [2, 2] },
       });
-      map.addSource('subway', { type: 'geojson', data: SUBWAY_ENTRANCES as GeoJSON.FeatureCollection });
+
+      map.addSource('subway', { type: 'geojson', data: SUBWAY_ENTRANCES as unknown as GeoJSON.FeatureCollection });
       map.addLayer({
         id: 'subway-dots',
         type: 'circle',
         source: 'subway',
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 1.5, 16, 4],
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 1, 16, 4],
           'circle-color': '#0a3d62',
-          'circle-opacity': 0.55,
+          'circle-opacity': 0.5,
         },
       });
     });
@@ -122,10 +142,7 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       const verdict = evaluate(cfg, facts, when);
       const nearestSubwayFt = res.nearestSubwayMeters(ll) / 0.3048;
       setSelected({ at: ll, verdict, nearestSubwayFt });
-
-      if (!markerRef.current) {
-        markerRef.current = new maplibregl.Marker({ color: '#b42318' });
-      }
+      if (!markerRef.current) markerRef.current = new maplibregl.Marker({ color: '#b42318' });
       markerRef.current.setLngLat(ll).addTo(map);
     });
 
@@ -136,7 +153,7 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
     };
   }, []);
 
-  // Re-evaluate the already-selected point when the config or time changes.
+  // Re-evaluate the selected point when config or time changes.
   useEffect(() => {
     if (!selected) return;
     const facts = resolver.resolve(selected.at);
@@ -186,7 +203,7 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       </div>
 
       <div className="map" ref={containerRef} style={{ aspectRatio: '1 / 1.15' }} />
-      <p className="tap-hint">Tap anywhere on the map to check that spot for your license.</p>
+      <p className="tap-hint">Tap anywhere in the five boroughs to check that spot for your license.</p>
 
       {selected && (
         <ResultCard
@@ -201,24 +218,30 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       <LayerProvenance resolver={resolver} />
 
       <div className="disc">
-        <b>Manhattan pilot.</b> Subway-entrance buffers use real MTA data (DS-034). Zoning and park
-        overlays are statutory/illustrative pending licensed City layers, and several rules are not
-        yet integrated — see the data notes on each result. Always confirm with 311 or the agency.
+        <b>Citywide pilot.</b> Subway-entrance buffers and borough boundaries use real City data;
+        special zones are encoded from the Admin Code; commercial zoning, parks, Green Cart, and
+        DOHMH restricted streets are illustrative pending licensed City layers, and several rules are
+        not yet integrated — see the layer list and each result's data note. Always confirm with 311.
       </div>
     </>
   );
 }
 
-function LayerProvenance({ resolver }: { resolver: ManhattanPilotResolver }) {
+function LayerProvenance({ resolver }: { resolver: NycPilotResolver }) {
   return (
     <div className="opcard" style={{ marginTop: 14 }}>
-      <h4>Data layers in this pilot</h4>
+      <h4>Data layers — integration status</h4>
       {resolver.layers().map((l) => (
-        <div className="rule" key={l.label}>
-          <span className="ic">{/real/i.test(l.provenance) ? '✅' : '🧪'}</span>
+        <div className="rule" key={l.id}>
+          <span className="ic">{STATUS_ICON[l.status]}</span>
           <span className="tx">
-            <b>{l.label}</b>
-            <span>{l.provenance}</span>
+            <b>
+              {l.label} <span className="pill">{l.status}</span>
+            </b>
+            <span>
+              {l.feeds}
+              {l.dataset ? ` · ${l.dataset}` : ''}
+            </span>
           </span>
         </div>
       ))}
