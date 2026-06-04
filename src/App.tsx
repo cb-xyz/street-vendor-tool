@@ -1,10 +1,14 @@
+import { Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from './i18n';
 import { OUTER_BOROUGHS, VENDOR_CATALOG, findLicense, findVendorType } from './config/catalog';
 import { useVendorConfig } from './state/useVendorConfig';
-import { RealMapView } from './components/RealMapView';
 import { SbsLogo } from './components/SbsLogo';
 import type { Borough, LicenseSubType, VendorType } from './engine/types';
+
+// Lazy-load the map (MapLibre + bundled GeoJSON) so the opening screen loads fast — it's only
+// fetched once the user reaches the map step.
+const RealMapView = lazy(() => import('./components/RealMapView').then((m) => ({ default: m.RealMapView })));
 
 // Green Cart precincts offered in the picker (the illustrative layer uses precinct "40").
 const DEMO_PRECINCTS = ['40', '52', '73', '101'];
@@ -54,6 +58,15 @@ export default function App() {
 
         {step === 0 && (
           <>
+            <section className="intro">
+              <h2 className="intro-title">{t('intro_title')}</h2>
+              <p className="intro-body">{t('intro_body')}</p>
+              <ol className="intro-steps">
+                <li>{t('intro_step1')}</li>
+                <li>{t('intro_step2')}</li>
+                <li>{t('intro_step3')}</li>
+              </ol>
+            </section>
             <h2 className="q">{t('step_whatSell')}</h2>
             <p className="qs">{t('step_whatSell_hint')}</p>
             {VENDOR_CATALOG.map((v) => (
@@ -97,7 +110,9 @@ export default function App() {
                 </b>
               </div>
             </div>
-            <RealMapView config={complete} typeEmoji={typeOpt.emoji} licenseTitle={licOpt.title} />
+            <Suspense fallback={<div className="maploading">Loading map…</div>}>
+              <RealMapView config={complete} typeEmoji={typeOpt.emoji} licenseTitle={licOpt.title} />
+            </Suspense>
           </>
         )}
       </main>

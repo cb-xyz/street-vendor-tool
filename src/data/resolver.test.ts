@@ -73,8 +73,8 @@ describe('NycPilotResolver — citywide', () => {
   });
 
   it('detects the illustrative hydrant and scaffolding samples', () => {
-    expect(resolver.resolve({ lng: -73.9869, lat: 40.7521 }).withinHydrantBuffer).toBe(true);
-    expect(resolver.resolve({ lng: -73.9898, lat: 40.7508 }).atScaffolding).toBe(true);
+    expect(resolver.resolve({ lng: -73.9835, lat: 40.724 }).withinHydrantBuffer).toBe(true);
+    expect(resolver.resolve({ lng: -73.982, lat: 40.725 }).atScaffolding).toBe(true);
   });
 
   it('always surfaces the partial-coverage note listing pending layers', () => {

@@ -5,7 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { evaluate } from '../engine/ruleEngine';
 import type { EvalTime, VendorConfig, Verdict } from '../engine/types';
 import { NycPilotResolver, type LngLat } from '../data/resolver';
-import { BOROUGHS, NYC_MASK, SUBWAY_ENTRANCES, ZONES } from '../data/nyc';
+import { ALLOWED_PILOT, BOROUGHS, NYC_MASK, PILOT_CENTER, SUBWAY_ENTRANCES, ZONES } from '../data/nyc';
 import type { LayerStatus } from '../data/layerRegistry';
 import type { LocationFacts, EvalTime as EvalTimeT, VendorConfig as VendorConfigT, VerdictStatus } from '../engine/types';
 import type { ZoneKind } from '../data/nyc';
@@ -15,7 +15,6 @@ import { VendorResources } from './VendorResources';
 
 // OpenFreeMap Positron — clean, modern, minimal vector tiles, no API key / no usage limits.
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
-const NYC_CENTER: [number, number] = [-73.95, 40.7];
 // Bounding box that keeps the map over NYC (no New Jersey / Long Island / far-out zoom).
 const NYC_BOUNDS: maplibregl.LngLatBoundsLike = [
   [-74.27, 40.48], // SW
@@ -160,8 +159,8 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: STYLE_URL,
-      center: NYC_CENTER,
-      zoom: 9.7,
+      center: PILOT_CENTER, // open on the allowed-vending pilot so the green areas are visible
+      zoom: 14.2,
       minZoom: 9.3,
       maxZoom: 18,
       maxBounds: NYC_BOUNDS,
@@ -193,6 +192,21 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       // Opaque mask over everything outside the five boroughs — no New Jersey / Long Island.
       map.addSource('mask', { type: 'geojson', data: NYC_MASK as unknown as GeoJSON.FeatureCollection });
       map.addLayer({ id: 'mask-fill', type: 'fill', source: 'mask', paint: { 'fill-color': MASK_COLOR } });
+
+      // Green "allowed to vend" areas (pilot): sidewalks minus exclusion buffers.
+      map.addSource('allowed', { type: 'geojson', data: ALLOWED_PILOT as unknown as GeoJSON.FeatureCollection });
+      map.addLayer({
+        id: 'allowed-fill',
+        type: 'fill',
+        source: 'allowed',
+        paint: { 'fill-color': '#22a34a', 'fill-opacity': 0.5 },
+      });
+      map.addLayer({
+        id: 'allowed-outline',
+        type: 'line',
+        source: 'allowed',
+        paint: { 'line-color': '#147a33', 'line-width': 0.8, 'line-opacity': 0.7 },
+      });
 
       map.addSource('boroughs', { type: 'geojson', data: BOROUGHS as unknown as GeoJSON.FeatureCollection });
       map.addLayer({
@@ -308,16 +322,16 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
 
       <div className="legend">
         <span style={{ background: 'var(--green-bg)', color: 'var(--green)' }}>
-          <i className="sw" style={{ background: 'var(--green)' }} />
-          {t('legend_permitted')}
+          <i className="sw" style={{ background: '#22a34a' }} />
+          Allowed to vend
+        </span>
+        <span style={{ background: 'var(--red-bg)', color: 'var(--red)' }}>
+          <i className="sw" style={{ background: 'var(--red)' }} />
+          No vending
         </span>
         <span style={{ background: 'var(--yellow-bg)', color: 'var(--yellow)' }}>
           <i className="sw" style={{ background: 'var(--yellow)' }} />
           {t('legend_restricted')}
-        </span>
-        <span style={{ background: 'var(--red-bg)', color: 'var(--red)' }}>
-          <i className="sw" style={{ background: 'var(--red)' }} />
-          {t('legend_prohibited')}
         </span>
         <span style={{ background: 'var(--gray-bg)', color: 'var(--gray)' }}>
           <i className="sw" style={{ background: '#9b958a' }} />
@@ -327,8 +341,8 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
 
       <div className="map" ref={containerRef} style={{ aspectRatio: '1 / 1.15' }} />
       <p className="tap-hint">
-        Colored areas show where you <b>can’t</b> vend (red), are <b>restricted</b> (yellow), or are
-        <b> out of scope</b> (gray) for this license. Tap any spot for details.
+        <b>Green</b> shows where you can vend (pilot area — East Village). Red areas around subway
+        entrances, hydrants, and scaffolding are off-limits. Tap any spot for details.
       </p>
 
       {selected && (
