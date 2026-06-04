@@ -44,6 +44,9 @@ const en = {
 
   feedback: 'Feedback',
   draftNote: 'Detailed rule explanations are shown in English while translations are being finalized.',
+  geo_outside: 'You appear to be outside New York City — this tool only covers the five boroughs.',
+  geo_denied: 'Location is turned off for this site. Allow location access, then tap the button again.',
+  geo_error: 'Couldn’t get your location. Please try again.',
 
   vt_food: 'Food Vendor',
   vt_merch: 'General Vendor',
