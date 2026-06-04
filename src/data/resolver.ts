@@ -16,7 +16,7 @@ import distance from '@turf/distance';
 import { point, polygon, multiPolygon } from '@turf/helpers';
 import type { Feature, MultiPolygon, Polygon } from 'geojson';
 import type { LocationFacts } from '../engine/types';
-import { BOROUGHS, HYDRANTS, PARKS, SUBWAY_ENTRANCES, ZONES } from './nyc';
+import { BOROUGHS, PARKS, SUBWAY_ENTRANCES, ZONES, ZONING } from './nyc';
 import { LAYER_REGISTRY, PENDING_LAYERS, type LayerInfo } from './layerRegistry';
 
 export interface LngLat {
@@ -30,7 +30,6 @@ export interface FactResolver {
 }
 
 const SUBWAY_BUFFER_METERS = 3.048; // 10 ft
-const HYDRANT_BUFFER_METERS = 3.048; // 10 ft (distance still pending legal confirmation)
 
 function toFeature(f: { geometry: { type: string; coordinates: unknown } }): Feature<Polygon | MultiPolygon> {
   return (
@@ -48,6 +47,7 @@ export class NycPilotResolver implements FactResolver {
   private readonly boroughPolys = BOROUGHS.features.map((f) => ({ borough: f.properties.borough, geom: toFeature(f) }));
   private readonly zonePolys = ZONES.features.map((f) => ({ props: f.properties, geom: toFeature(f) }));
   private readonly parkPolys = PARKS.features.map((f) => toFeature(f));
+  private readonly zoningPolys = ZONING.features.map((f) => ({ zonedist: f.properties.zonedist, geom: toFeature(f) }));
 
   resolve(at: LngLat): LocationFacts {
     const pt = point([at.lng, at.lat]);
@@ -100,6 +100,10 @@ export class NycPilotResolver implements FactResolver {
     // --- Parks (real, citywide) → out of scope ---
     if (this.parkPolys.some((g) => booleanPointInPolygon(pt, g))) facts.inPark = true;
 
+    // --- Commercial zoning C4/C5/C6 (real DCP nyzd, citywide) ---
+    const zone = this.zoningPolys.find((z) => booleanPointInPolygon(pt, z.geom));
+    if (zone) facts.zoningDistrict = zone.zonedist;
+
     // --- Subway entrance buffer (real DS-034) ---
     for (const f of SUBWAY_ENTRANCES.features) {
       if (distance(pt, point(f.geometry.coordinates), { units: 'meters' }) <= SUBWAY_BUFFER_METERS) {
@@ -108,14 +112,7 @@ export class NycPilotResolver implements FactResolver {
       }
     }
 
-    // --- Fire hydrant buffer (real NYCDEP, pilot subset) ---
-    for (const f of HYDRANTS.features) {
-      if (distance(pt, point(f.geometry.coordinates), { units: 'meters' }) <= HYDRANT_BUFFER_METERS) {
-        facts.withinHydrantBuffer = true;
-        break;
-      }
-    }
-
+    // Fire-hydrant proximity is applied by the map component from the citywide fetched layer.
     return facts;
   }
 

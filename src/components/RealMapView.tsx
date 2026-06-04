@@ -4,8 +4,10 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { evaluate } from '../engine/ruleEngine';
 import type { EvalTime, VendorConfig, Verdict } from '../engine/types';
+import distance from '@turf/distance';
+import { point as turfPoint } from '@turf/helpers';
 import { NycPilotResolver, type LngLat } from '../data/resolver';
-import { BOROUGHS, HYDRANTS, NYC_MASK, PARKS, PILOT_CENTER, SIDEWALKS_ALLOWED, SUBWAY_ENTRANCES, ZONES } from '../data/nyc';
+import { BOROUGHS, HYDRANTS_URL, NYC_MASK, PARKS, SIDEWALKS_URL, SUBWAY_ENTRANCES, ZONES, ZONING } from '../data/nyc';
 import type { LayerStatus } from '../data/layerRegistry';
 import type { LocationFacts, EvalTime as EvalTimeT, VendorConfig as VendorConfigT, VerdictStatus } from '../engine/types';
 import type { ZoneKind } from '../data/nyc';
@@ -45,6 +47,8 @@ function initialBounds(config: VendorConfig): [[number, number], [number, number
   }
   return null;
 }
+const NYC_CENTER: [number, number] = [-73.95, 40.7];
+const HYDRANT_BUFFER_FT = 10;
 // Bounding box that keeps the map over NYC (no New Jersey / Long Island / far-out zoom).
 const NYC_BOUNDS: maplibregl.LngLatBoundsLike = [
   [-74.27, 40.48], // SW
@@ -115,6 +119,13 @@ function zoneColorExpr(config: VendorConfigT, at: EvalTimeT) {
   return ['match', ['get', 'kind'], ...pairs, CLEAR] as unknown as maplibregl.ExpressionSpecification;
 }
 
+/** Fill colour for the real C4/C5/C6 commercial-zoning layer, for this vendor (all C-districts
+ *  share the same verdict: prohibited for Standard GV; exempt for Yellow/Blue; n/a for food). */
+function commercialColor(config: VendorConfigT, at: EvalTimeT): string {
+  const status = evaluate(config, { borough: 'Manhattan', zoningDistrict: 'C5' }, at).status;
+  return status === 'permitted' ? CLEAR : ZONE_FILL[status];
+}
+
 const STATUS_ICON: Record<LayerStatus, string> = {
   live: '✅',
   statutory: '📐',
@@ -148,6 +159,7 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
   const markerElRef = useRef<HTMLDivElement | null>(null);
+  const hydrantsRef = useRef<[number, number][]>([]); // citywide hydrant coords, fetched at load
   const resolver = useMemo(() => new NycPilotResolver(), []);
 
   // Time applies to all vendors (food restricted streets/seasonal; merch Dyker Heights).
@@ -169,6 +181,15 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
   const checkPoint = (ll: LngLat, map: maplibregl.Map) => {
     const { config: cfg, at: when, resolver: res } = evalRef.current;
     const facts = res.resolve(ll);
+    // Hydrant proximity from the citywide fetched layer (10 ft buffer).
+    const here = turfPoint([ll.lng, ll.lat]);
+    if (
+      hydrantsRef.current.some(
+        (c) => distance(here, turfPoint(c), { units: 'feet' }) <= HYDRANT_BUFFER_FT,
+      )
+    ) {
+      facts.withinHydrantBuffer = true;
+    }
     const verdict = evaluate(cfg, facts, when);
     const nearestSubwayFt = res.nearestSubwayMeters(ll) / 0.3048;
     setSelected({ at: ll, verdict, nearestSubwayFt });
@@ -190,8 +211,8 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: STYLE_URL,
-      center: PILOT_CENTER, // open on the pilot where the real green sidewalk data lives
-      zoom: 14.4,
+      center: NYC_CENTER,
+      zoom: 10.4,
       minZoom: 9.3,
       maxZoom: 18,
       maxBounds: NYC_BOUNDS,
@@ -248,10 +269,19 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       map.addSource('parks', { type: 'geojson', data: PARKS as unknown as GeoJSON.FeatureCollection });
       map.addLayer({ id: 'parks-fill', type: 'fill', source: 'parks', paint: { 'fill-color': '#9b958a', 'fill-opacity': 0.35 } });
 
-      // REAL allowed-to-vend sidewalks (pilot) — green.
-      map.addSource('allowed', { type: 'geojson', data: SIDEWALKS_ALLOWED as unknown as GeoJSON.FeatureCollection });
+      // REAL allowed-to-vend sidewalks (citywide) — green. Large file, loaded by URL (streamed).
+      map.addSource('allowed', { type: 'geojson', data: SIDEWALKS_URL });
       map.addLayer({ id: 'allowed-fill', type: 'fill', source: 'allowed', paint: { 'fill-color': '#1f9d4d', 'fill-opacity': 0.7 } });
-      map.addLayer({ id: 'allowed-outline', type: 'line', source: 'allowed', paint: { 'line-color': '#137a39', 'line-width': 0.6, 'line-opacity': 0.7 } });
+      map.addLayer({ id: 'allowed-outline', type: 'line', source: 'allowed', paint: { 'line-color': '#137a39', 'line-width': 0.5, 'line-opacity': 0.6 } });
+
+      // REAL C4/C5/C6 commercial zoning (citywide) — coloured by verdict for this vendor.
+      map.addSource('zoning', { type: 'geojson', data: ZONING as unknown as GeoJSON.FeatureCollection });
+      map.addLayer({
+        id: 'commercial-fill',
+        type: 'fill',
+        source: 'zoning',
+        paint: { 'fill-color': commercialColor(evalRef.current.config, evalRef.current.at), 'fill-opacity': 1 },
+      });
 
       map.addSource('boroughs', { type: 'geojson', data: BOROUGHS as unknown as GeoJSON.FeatureCollection });
       map.addLayer({
@@ -280,6 +310,7 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
         id: 'subway-core',
         type: 'circle',
         source: 'subway',
+        minzoom: 12,
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 1.2, 16, 3.5],
           'circle-color': '#6b7682',
@@ -310,12 +341,21 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       map.on('mousemove', 'subway-core', showPop);
       map.on('mouseleave', 'subway-core', hidePop);
 
-      // Fire hydrants (real, pilot) — small dots; 10 ft no-vend.
-      map.addSource('hydrants', { type: 'geojson', data: HYDRANTS as unknown as GeoJSON.FeatureCollection });
+      // Fire hydrants (real, citywide) — fetched by URL; also cached in a ref for click checks.
+      map.addSource('hydrants', { type: 'geojson', data: HYDRANTS_URL });
+      fetch(HYDRANTS_URL)
+        .then((r) => r.json())
+        .then((fc: GeoJSON.FeatureCollection) => {
+          hydrantsRef.current = fc.features
+            .map((f) => (f.geometry?.type === 'Point' ? (f.geometry.coordinates as [number, number]) : null))
+            .filter((c): c is [number, number] => !!c);
+        })
+        .catch(() => {});
       map.addLayer({
         id: 'hydrant-dots',
         type: 'circle',
         source: 'hydrants',
+        minzoom: 13.5,
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 1.4, 16, 3.5],
           'circle-color': '#b42318',
@@ -352,6 +392,9 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
     const map = mapRef.current;
     if (map && map.getLayer('zones-fill')) {
       map.setPaintProperty('zones-fill', 'fill-color', zoneColorExpr(config, at));
+    }
+    if (map && map.getLayer('commercial-fill')) {
+      map.setPaintProperty('commercial-fill', 'fill-color', commercialColor(config, at));
     }
     if (selected) {
       const facts = resolver.resolve(selected.at);

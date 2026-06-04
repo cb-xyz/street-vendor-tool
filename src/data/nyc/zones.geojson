@@ -22,16 +22,6 @@
     },
     {
       "type": "Feature",
-      "properties": { "kind": "commercial", "zonedist": "C5", "label": "Times Square area (C5 — illustrative)", "provenance": "illustrative", "dataset": "DS-012", "source": "Illustrative commercial zone pending licensed DCP GIS Zoning Features" },
-      "geometry": { "type": "Polygon", "coordinates": [[[-73.9895,40.7560],[-73.9835,40.7536],[-73.9812,40.7596],[-73.9872,40.7620],[-73.9895,40.7560]]] }
-    },
-    {
-      "type": "Feature",
-      "properties": { "kind": "commercial", "zonedist": "C6", "label": "Herald Square area (C6 — illustrative)", "provenance": "illustrative", "dataset": "DS-012", "source": "Illustrative commercial zone pending licensed DCP GIS Zoning Features" },
-      "geometry": { "type": "Polygon", "coordinates": [[[-73.9921,40.7480],[-73.9861,40.7456],[-73.9840,40.7510],[-73.9900,40.7534],[-73.9921,40.7480]]] }
-    },
-    {
-      "type": "Feature",
       "properties": { "kind": "greenCart", "precinct": "40", "label": "Green Cart precinct 40 (illustrative)", "provenance": "illustrative", "dataset": "DS-005", "source": "Illustrative precinct geography (South Bronx) pending DOHMH Green Cart polygons" },
       "geometry": { "type": "Polygon", "coordinates": [[[-73.9270,40.8150],[-73.9180,40.8120],[-73.9160,40.8180],[-73.9250,40.8210],[-73.9270,40.8150]]] }
     },

@@ -72,9 +72,7 @@ describe('NycPilotResolver — citywide', () => {
     expect(evaluate({ vendorType: 'merch', license: 'standard' }, facts).status).toBe('outOfScope');
   });
 
-  it('detects a real fire hydrant (pilot) and the illustrative scaffolding sample', () => {
-    // Sitting on a real hydrant point from the bundled pilot subset.
-    expect(resolver.resolve({ lng: -73.976974, lat: 40.720074 }).withinHydrantBuffer).toBe(true);
+  it('detects the illustrative scaffolding sample', () => {
     expect(resolver.resolve({ lng: -73.982, lat: 40.725 }).atScaffolding).toBe(true);
   });
 
@@ -82,6 +80,13 @@ describe('NycPilotResolver — citywide', () => {
     const facts = resolver.resolve({ lng: -73.88432, lat: 40.6443 });
     expect(facts.inPark).toBe(true);
     expect(evaluate({ vendorType: 'merch', license: 'standard' }, facts).status).toBe('outOfScope');
+  });
+
+  it('detects real C4/C5/C6 commercial zoning and prohibits a Standard GV (Yellow exempt)', () => {
+    const facts = resolver.resolve({ lng: -73.97642, lat: 40.68313 });
+    expect(facts.zoningDistrict).toMatch(/^C[456]/);
+    expect(evaluate({ vendorType: 'merch', license: 'standard' }, facts).status).toBe('prohibited');
+    expect(evaluate({ vendorType: 'merch', license: 'yellow' }, facts).status).toBe('permitted');
   });
 
   it('always surfaces the partial-coverage note listing pending layers', () => {
