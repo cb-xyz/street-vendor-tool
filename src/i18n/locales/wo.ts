@@ -24,6 +24,7 @@ const wo: Strings = {
   showingRulesFor: 'Sàrt yi ñuy wone:',
   view_live: 'Léegi',
   view_planning: 'Bés ak waxtu',
+  legend_allowed: 'Jaay dañu ko may',
   legend_noVending: 'Jaay teru',
   legend_restricted: 'Xañ',
   legend_outOfScope: 'Génn ci liggéey bi',

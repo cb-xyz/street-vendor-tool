@@ -24,6 +24,7 @@ const ko: Strings = {
   showingRulesFor: '적용 규칙:',
   view_live: '지금',
   view_planning: '날짜 및 시간',
+  legend_allowed: '영업 가능',
   legend_noVending: '영업 금지',
   legend_restricted: '제한됨',
   legend_outOfScope: '대상 아님',

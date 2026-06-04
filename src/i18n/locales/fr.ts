@@ -24,6 +24,7 @@ const fr: Strings = {
   showingRulesFor: 'Règles affichées pour',
   view_live: 'Maintenant',
   view_planning: 'Jour et heure',
+  legend_allowed: 'Vente autorisée',
   legend_noVending: 'Vente interdite',
   legend_restricted: 'Restreint',
   legend_outOfScope: 'Hors champ',

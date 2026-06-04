@@ -5,7 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { evaluate } from '../engine/ruleEngine';
 import type { EvalTime, VendorConfig, Verdict } from '../engine/types';
 import { NycPilotResolver, type LngLat } from '../data/resolver';
-import { BOROUGHS, NYC_MASK, SUBWAY_ENTRANCES, ZONES } from '../data/nyc';
+import { BOROUGHS, HYDRANTS, NYC_MASK, PARKS, PILOT_CENTER, SIDEWALKS_ALLOWED, SUBWAY_ENTRANCES, ZONES } from '../data/nyc';
 import type { LayerStatus } from '../data/layerRegistry';
 import type { LocationFacts, EvalTime as EvalTimeT, VendorConfig as VendorConfigT, VerdictStatus } from '../engine/types';
 import type { ZoneKind } from '../data/nyc';
@@ -15,8 +15,6 @@ import { VendorResources } from './VendorResources';
 
 // OpenFreeMap Positron — clean, modern, minimal vector tiles, no API key / no usage limits.
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
-const NYC_CENTER: [number, number] = [-73.95, 40.7];
-
 /** Bounding box [[minLng,minLat],[maxLng,maxLat]] of any GeoJSON polygon/multipolygon coords. */
 function coordsBounds(coords: unknown): [[number, number], [number, number]] {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -192,8 +190,8 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: STYLE_URL,
-      center: NYC_CENTER,
-      zoom: 9.7,
+      center: PILOT_CENTER, // open on the pilot where the real green sidewalk data lives
+      zoom: 14.4,
       minZoom: 9.3,
       maxZoom: 18,
       maxBounds: NYC_BOUNDS,
@@ -245,6 +243,15 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       // Opaque mask over everything outside the five boroughs — no New Jersey / Long Island.
       map.addSource('mask', { type: 'geojson', data: NYC_MASK as unknown as GeoJSON.FeatureCollection });
       map.addLayer({ id: 'mask-fill', type: 'fill', source: 'mask', paint: { 'fill-color': MASK_COLOR } });
+
+      // Parks (real, citywide) — out of scope, drawn gray.
+      map.addSource('parks', { type: 'geojson', data: PARKS as unknown as GeoJSON.FeatureCollection });
+      map.addLayer({ id: 'parks-fill', type: 'fill', source: 'parks', paint: { 'fill-color': '#9b958a', 'fill-opacity': 0.35 } });
+
+      // REAL allowed-to-vend sidewalks (pilot) — green.
+      map.addSource('allowed', { type: 'geojson', data: SIDEWALKS_ALLOWED as unknown as GeoJSON.FeatureCollection });
+      map.addLayer({ id: 'allowed-fill', type: 'fill', source: 'allowed', paint: { 'fill-color': '#1f9d4d', 'fill-opacity': 0.7 } });
+      map.addLayer({ id: 'allowed-outline', type: 'line', source: 'allowed', paint: { 'line-color': '#137a39', 'line-width': 0.6, 'line-opacity': 0.7 } });
 
       map.addSource('boroughs', { type: 'geojson', data: BOROUGHS as unknown as GeoJSON.FeatureCollection });
       map.addLayer({
@@ -302,6 +309,33 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       map.on('mouseenter', 'subway-core', showPop);
       map.on('mousemove', 'subway-core', showPop);
       map.on('mouseleave', 'subway-core', hidePop);
+
+      // Fire hydrants (real, pilot) — small dots; 10 ft no-vend.
+      map.addSource('hydrants', { type: 'geojson', data: HYDRANTS as unknown as GeoJSON.FeatureCollection });
+      map.addLayer({
+        id: 'hydrant-dots',
+        type: 'circle',
+        source: 'hydrants',
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 1.4, 16, 3.5],
+          'circle-color': '#b42318',
+          'circle-opacity': 0.85,
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 13, 0, 16, 0.8],
+        },
+      });
+      const hydrantPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 8 });
+      map.on('mousemove', 'hydrant-dots', (e) => {
+        map.getCanvas().style.cursor = 'pointer';
+        hydrantPopup
+          .setLngLat(e.lngLat)
+          .setHTML('<strong>Fire hydrant</strong><br><span class="pop-warn">Keep clear (≈10 ft)</span>')
+          .addTo(map);
+      });
+      map.on('mouseleave', 'hydrant-dots', () => {
+        map.getCanvas().style.cursor = '';
+        hydrantPopup.remove();
+      });
     });
 
     map.on('click', (e) => checkPoint({ lng: e.lngLat.lng, lat: e.lngLat.lat }, map));
@@ -347,6 +381,10 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       </div>
 
       <div className="legend">
+        <span style={{ background: 'var(--green-bg)', color: 'var(--green)' }}>
+          <i className="sw" style={{ background: '#1f9d4d' }} />
+          {t('legend_allowed')}
+        </span>
         <span style={{ background: 'var(--red-bg)', color: 'var(--red)' }}>
           <i className="sw" style={{ background: 'var(--red)' }} />
           {t('legend_noVending')}

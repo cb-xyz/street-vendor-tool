@@ -24,6 +24,7 @@ const ht: Strings = {
   showingRulesFor: 'Montre règ pou',
   view_live: 'Kounye a',
   view_planning: 'Jou ak lè',
+  legend_allowed: 'Vant pèmèt',
   legend_noVending: 'Pa gen vant',
   legend_restricted: 'Restriksyon',
   legend_outOfScope: 'Andeyò sèvis la',
