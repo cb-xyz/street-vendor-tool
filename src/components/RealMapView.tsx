@@ -158,14 +158,15 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
   const [date, setDate] = useState(initial.date);
   const [time, setTime] = useState(initial.time);
   const [selected, setSelected] = useState<Selected | null>(null);
+  const [geoStatus, setGeoStatus] = useState<string | null>(null);
 
   const at: EvalTime = useMemo(
     () => (mode === 'live' ? nycNow() : fromDateTimeInputs(date, time)),
     [mode, date, time],
   );
 
-  const evalRef = useRef({ config, at, resolver });
-  evalRef.current = { config, at, resolver };
+  const evalRef = useRef({ config, at, resolver, t });
+  evalRef.current = { config, at, resolver, t };
 
   const checkPoint = (ll: LngLat, map: maplibregl.Map) => {
     const { config: cfg, at: when, resolver: res } = evalRef.current;
@@ -209,15 +210,24 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       new maplibregl.AttributionControl({ compact: true, customAttribution: '© OpenStreetMap' }),
       'bottom-left',
     );
-    // "Find my location" — bottom-right per request.
+    // "Find my location" — bottom-right per request. Tapping it triggers the browser's
+    // permission prompt; we handle success, the outside-NYC case, and errors explicitly.
     const geolocate = new maplibregl.GeolocateControl({
-      positionOptions: { enableHighAccuracy: true },
+      positionOptions: { enableHighAccuracy: true, timeout: 10000 },
       trackUserLocation: false,
       showUserLocation: true,
     });
     map.addControl(geolocate, 'bottom-right');
     geolocate.on('geolocate', (e: GeolocationPosition) => {
-      checkPoint({ lng: e.coords.longitude, lat: e.coords.latitude }, map);
+      const ll = { lng: e.coords.longitude, lat: e.coords.latitude };
+      const outside = !!evalRef.current.resolver.resolve(ll).outsideNyc;
+      setGeoStatus(outside ? evalRef.current.t('geo_outside') : null);
+      checkPoint(ll, map);
+    });
+    // Fired when the located position is outside the map's max bounds (i.e. outside NYC).
+    geolocate.on('outofmaxbounds', () => setGeoStatus(evalRef.current.t('geo_outside')));
+    geolocate.on('error', (err: GeolocationPositionError) => {
+      setGeoStatus(err && err.code === 1 ? evalRef.current.t('geo_denied') : evalRef.current.t('geo_error'));
     });
 
     map.on('load', () => {
@@ -352,6 +362,11 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       </div>
 
       <div className="map" ref={containerRef} style={{ aspectRatio: '1 / 1.15' }} />
+      {geoStatus && (
+        <p className="geo-status" role="status">
+          📍 {geoStatus}
+        </p>
+      )}
       <p className="tap-hint">{t('map_tapHint')}</p>
 
       {selected && (
