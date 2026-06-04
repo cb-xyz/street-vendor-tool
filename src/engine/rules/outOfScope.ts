@@ -13,14 +13,14 @@ export const outOfScope: Rule = ({ facts }) => {
     return {
       stop: true,
       status: 'outOfScope',
-      title: 'Outside New York City',
+      title: 'Not a sidewalk',
       reasons: [
         {
-          icon: '🗺️',
+          icon: '🌊',
           code: 'OUTSIDE_NYC',
-          title: 'Not covered by this tool',
+          title: 'Nothing to vend on here',
           detail:
-            'This spot is outside the five boroughs (or in the water). This tool only covers vending on NYC public sidewalks.',
+            'This spot is in the water or outside the five boroughs — there’s no public sidewalk here. Pick a spot on a NYC street.',
         },
       ],
     };

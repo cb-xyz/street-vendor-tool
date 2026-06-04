@@ -5,7 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { evaluate } from '../engine/ruleEngine';
 import type { EvalTime, VendorConfig, Verdict } from '../engine/types';
 import { NycPilotResolver, type LngLat } from '../data/resolver';
-import { ALLOWED_PILOT, BOROUGHS, NYC_MASK, PILOT_CENTER, SUBWAY_ENTRANCES, ZONES } from '../data/nyc';
+import { BOROUGHS, NYC_MASK, SUBWAY_ENTRANCES, ZONES } from '../data/nyc';
 import type { LayerStatus } from '../data/layerRegistry';
 import type { LocationFacts, EvalTime as EvalTimeT, VendorConfig as VendorConfigT, VerdictStatus } from '../engine/types';
 import type { ZoneKind } from '../data/nyc';
@@ -15,6 +15,7 @@ import { VendorResources } from './VendorResources';
 
 // OpenFreeMap Positron — clean, modern, minimal vector tiles, no API key / no usage limits.
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
+const NYC_CENTER: [number, number] = [-73.95, 40.7];
 // Bounding box that keeps the map over NYC (no New Jersey / Long Island / far-out zoom).
 const NYC_BOUNDS: maplibregl.LngLatBoundsLike = [
   [-74.27, 40.48], // SW
@@ -159,8 +160,8 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: STYLE_URL,
-      center: PILOT_CENTER, // open on the allowed-vending pilot so the green areas are visible
-      zoom: 14.2,
+      center: NYC_CENTER,
+      zoom: 9.7,
       minZoom: 9.3,
       maxZoom: 18,
       maxBounds: NYC_BOUNDS,
@@ -193,21 +194,6 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       map.addSource('mask', { type: 'geojson', data: NYC_MASK as unknown as GeoJSON.FeatureCollection });
       map.addLayer({ id: 'mask-fill', type: 'fill', source: 'mask', paint: { 'fill-color': MASK_COLOR } });
 
-      // Green "allowed to vend" areas (pilot): sidewalks minus exclusion buffers.
-      map.addSource('allowed', { type: 'geojson', data: ALLOWED_PILOT as unknown as GeoJSON.FeatureCollection });
-      map.addLayer({
-        id: 'allowed-fill',
-        type: 'fill',
-        source: 'allowed',
-        paint: { 'fill-color': '#22a34a', 'fill-opacity': 0.5 },
-      });
-      map.addLayer({
-        id: 'allowed-outline',
-        type: 'line',
-        source: 'allowed',
-        paint: { 'line-color': '#147a33', 'line-width': 0.8, 'line-opacity': 0.7 },
-      });
-
       map.addSource('boroughs', { type: 'geojson', data: BOROUGHS as unknown as GeoJSON.FeatureCollection });
       map.addLayer({
         id: 'boroughs-outline',
@@ -229,41 +215,31 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
         paint: { 'line-color': 'rgba(60,60,60,0.45)', 'line-width': 1, 'line-dasharray': [2, 2] },
       });
 
-      // Subway entrances are no-vend areas (10 ft). Shown as soft red halos + a solid core.
+      // Subway entrances (10 ft no-vend). Shown as small, discreet dots — details on hover/tap.
       map.addSource('subway', { type: 'geojson', data: SUBWAY_ENTRANCES as unknown as GeoJSON.FeatureCollection });
-      map.addLayer({
-        id: 'subway-buffer',
-        type: 'circle',
-        source: 'subway',
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 3, 14, 11, 17, 26],
-          'circle-color': '#d8362a',
-          'circle-opacity': 0.18,
-        },
-      });
       map.addLayer({
         id: 'subway-core',
         type: 'circle',
         source: 'subway',
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 1.4, 16, 4],
-          'circle-color': '#d8362a',
-          'circle-opacity': 0.9,
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 1.2, 16, 3.5],
+          'circle-color': '#6b7682',
+          'circle-opacity': 0.7,
           'circle-stroke-color': '#ffffff',
-          'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 10, 0, 14, 1],
+          'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 12, 0, 15, 0.8],
         },
       });
 
       // Hover a subway entrance → explain the no-vend rule.
-      const subwayPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
+      const subwayPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 8 });
       const showPop = (e: maplibregl.MapLayerMouseEvent) => {
         map.getCanvas().style.cursor = 'pointer';
         const name = (e.features?.[0]?.properties?.name as string) || '';
         subwayPopup
           .setLngLat(e.lngLat)
           .setHTML(
-            `<strong>Subway entrance — no vending</strong>${name ? `<br><span class="pop-sub">${name}</span>` : ''}` +
-              `<br><span class="pop-warn">Stay 10 ft away</span>`,
+            `<strong>Subway entrance</strong>${name ? `<br><span class="pop-sub">${name}</span>` : ''}` +
+              `<br><span class="pop-warn">No vending within 10 ft</span>`,
           )
           .addTo(map);
       };
@@ -271,11 +247,9 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
         map.getCanvas().style.cursor = '';
         subwayPopup.remove();
       };
-      for (const layer of ['subway-core', 'subway-buffer']) {
-        map.on('mouseenter', layer, showPop);
-        map.on('mousemove', layer, showPop);
-        map.on('mouseleave', layer, hidePop);
-      }
+      map.on('mouseenter', 'subway-core', showPop);
+      map.on('mousemove', 'subway-core', showPop);
+      map.on('mouseleave', 'subway-core', hidePop);
     });
 
     map.on('click', (e) => checkPoint({ lng: e.lngLat.lng, lat: e.lngLat.lat }, map));
@@ -321,10 +295,6 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       </div>
 
       <div className="legend">
-        <span style={{ background: 'var(--green-bg)', color: 'var(--green)' }}>
-          <i className="sw" style={{ background: '#22a34a' }} />
-          Allowed to vend
-        </span>
         <span style={{ background: 'var(--red-bg)', color: 'var(--red)' }}>
           <i className="sw" style={{ background: 'var(--red)' }} />
           No vending
@@ -341,8 +311,8 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
 
       <div className="map" ref={containerRef} style={{ aspectRatio: '1 / 1.15' }} />
       <p className="tap-hint">
-        <b>Green</b> shows where you can vend (pilot area — East Village). Red areas around subway
-        entrances, hydrants, and scaffolding are off-limits. Tap any spot for details.
+        Colored areas are where you <b>can’t</b> vend (red), are <b>restricted</b> (yellow), or
+        <b> out of scope</b> (gray). Everywhere else is generally allowed — tap any spot to check.
       </p>
 
       {selected && (

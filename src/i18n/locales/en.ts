@@ -1,7 +1,7 @@
 /** English base strings. Other Local Law 30 languages fall back to these until translated. */
 const en = {
   mockBanner: 'PROTOTYPE · sample data — not official vending locations yet',
-  agency: 'NYC Office of Street Vendor Services',
+  agency: 'Office of Street Vendor Services',
   appTitle: 'Where can I vend?',
   appSubtitle: 'Tap anywhere to see if you can legally vend there.',
 
