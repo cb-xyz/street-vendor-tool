@@ -110,7 +110,7 @@ export default function App() {
                 {t('showingRulesFor')}
                 <br />
                 <b>
-                  {typeOpt.emoji} {licOpt.title}
+                  {typeOpt.emoji} {t(`lt_${config.license}`)}
                   {config.permittedBorough ? ` · ${config.permittedBorough}` : ''}
                   {config.greenCartPrecinct ? ` · Precinct ${config.greenCartPrecinct}` : ''}
                 </b>
@@ -124,7 +124,7 @@ export default function App() {
                 </div>
               }
             >
-              <RealMapView config={complete} typeEmoji={typeOpt.emoji} licenseTitle={licOpt.title} />
+              <RealMapView config={complete} typeEmoji={typeOpt.emoji} licenseTitle={t(`lt_${config.license}`)} />
             </Suspense>
           </>
         )}
@@ -221,10 +221,10 @@ function StepLicense({
         <button key={l.id} className="opt" onClick={() => onPickLicense(l.id)}>
           <span>
             <span className="ttl">
-              {l.title}
-              {l.chip && <span className={`chip ${l.chip.tone}`}>{l.chip.label}</span>}
+              {t(`lt_${l.id}`)}
+              {l.chip && <span className={`chip ${l.chip.tone}`}>{t(`chip_${l.id}`)}</span>}
             </span>
-            <span className="dsc">{l.desc}</span>
+            <span className="dsc">{t(`ld_${l.id}`)}</span>
           </span>
         </button>
       ))}

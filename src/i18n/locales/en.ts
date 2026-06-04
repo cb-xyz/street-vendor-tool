@@ -51,6 +51,27 @@ const en = {
   vt_food_desc: 'Licensed by the Department of Health and Mental Hygiene',
   vt_merch_desc: 'Licensed by the Department of Consumer and Worker Protection',
   vt_firstAmendment_desc: 'Books, art, and written matter · No license required',
+
+  lt_citywide: 'Citywide Permit',
+  lt_borough: 'Borough-Specific Permit',
+  lt_greenCart: 'Green Cart Permit',
+  lt_seasonal: 'Seasonal Permit',
+  lt_standard: 'Standard License',
+  lt_yellow: 'Specialized License — Citywide',
+  lt_blue: 'Specialized License — Midtown Core',
+  lt_firstAmendment: 'First Amendment Vending',
+  ld_citywide: 'All five boroughs, year-round',
+  ld_borough: 'One borough, excluding Manhattan',
+  ld_greenCart: 'Fresh produce only, in your assigned precinct',
+  ld_seasonal: 'Valid April 1 – October 31',
+  ld_standard: 'Most areas; not permitted in C4/C5/C6 zones or the Midtown Core',
+  ld_yellow: 'Disabled veterans; valid citywide, including commercial zones',
+  ld_blue: 'Disabled veterans; required to vend in the Midtown Core',
+  ld_firstAmendment: 'Follows placement rules; treatment in certain zones is pending legal confirmation',
+  chip_borough: 'Borough',
+  chip_greenCart: 'Green Cart',
+  chip_yellow: 'Yellow',
+  chip_blue: 'Blue',
 };
 
 export type Strings = typeof en;
