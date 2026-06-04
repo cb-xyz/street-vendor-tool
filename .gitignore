@@ -10,3 +10,7 @@ coverage
 .env
 .env.*
 !.env.example
+
+# Raw source GIS files (large) — keep out of git; README is tracked
+src/data/raw/*
+!src/data/raw/README.md
