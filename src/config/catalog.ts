@@ -52,7 +52,7 @@ export const VENDOR_CATALOG: VendorTypeOption[] = [
     id: 'merch',
     emoji: '🧢',
     title: 'General Vendor',
-    desc: 'Non-food merchandise · Licensed by the Department of Consumer and Worker Protection',
+    desc: 'Licensed by the Department of Consumer and Worker Protection',
     licenses: [
       {
         id: 'standard',

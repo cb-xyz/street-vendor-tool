@@ -50,6 +50,7 @@ export default function App() {
       </header>
 
       <main>
+        {i18n.language !== 'en' && <p className="draft-note">{t('draftNote')}</p>}
         <nav className="stepper" aria-label="Progress">
           {[t('nav_vendor'), t('nav_license'), t('nav_map')].map((label, i) => (
             <div
@@ -66,7 +67,6 @@ export default function App() {
           <>
             <section className="intro">
               <h2 className="intro-title">{t('intro_title')}</h2>
-              <p className="intro-body">{t('intro_body')}</p>
               <ol className="intro-steps">
                 <li>{t('intro_step1')}</li>
                 <li>{t('intro_step2')}</li>
@@ -76,11 +76,11 @@ export default function App() {
             <h2 className="q">{t('step_whatSell')}</h2>
             <p className="qs">{t('step_whatSell_hint')}</p>
             {VENDOR_CATALOG.map((v) => (
-              <button key={v.id} className="opt" onClick={() => reset({ vendorType: v.id })}>
+              <button key={v.id} className="opt vt-opt" onClick={() => reset({ vendorType: v.id })}>
                 <span className="emoji">{v.emoji}</span>
                 <span>
-                  <span className="ttl">{v.title}</span>
-                  <span className="dsc">{v.desc}</span>
+                  <span className="ttl">{t(`vt_${v.id}`)}</span>
+                  <span className="dsc">{t(`vt_${v.id}_desc`)}</span>
                 </span>
               </button>
             ))}
@@ -116,12 +116,29 @@ export default function App() {
                 </b>
               </div>
             </div>
-            <Suspense fallback={<div className="maploading">Loading map…</div>}>
+            <Suspense
+              fallback={
+                <div className="maploading" role="status" aria-live="polite">
+                  <span className="spinner" aria-hidden="true" />
+                  <span>{t('map_loading')}</span>
+                </div>
+              }
+            >
               <RealMapView config={complete} typeEmoji={typeOpt.emoji} licenseTitle={licOpt.title} />
             </Suspense>
           </>
         )}
       </main>
+
+      <footer className="appfoot">
+        {/* TODO: replace with the real SBS feedback intake (form or monitored inbox). */}
+        <a
+          className="feedback-btn"
+          href="mailto:streetvendorservices@sbs.nyc.gov?subject=Where%20Can%20I%20Vend%3F%20feedback&body=What%20worked%2C%20what%20didn%27t%2C%20or%20a%20spot%20that%20looked%20wrong%3A%0A%0A"
+        >
+          💬 {t('feedback')}
+        </a>
+      </footer>
     </div>
   );
 }
