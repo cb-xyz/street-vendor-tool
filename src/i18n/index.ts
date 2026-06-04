@@ -33,4 +33,9 @@ void i18n.use(initReactI18next).init({
   // falls back to English so no UI string is ever missing.
 });
 
+// Keep <html lang> in sync with the active language (accessibility / screen readers).
+i18n.on('languageChanged', (lng) => {
+  if (typeof document !== 'undefined') document.documentElement.lang = lng;
+});
+
 export default i18n;
