@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from './i18n';
 import { OUTER_BOROUGHS, VENDOR_CATALOG, findLicense, findVendorType } from './config/catalog';
 import { useVendorConfig } from './state/useVendorConfig';
 import { MapView } from './components/MapView';
+import { RealMapView } from './components/RealMapView';
 import type { Borough, LicenseSubType, VendorType } from './engine/types';
+
+type Surface = 'manhattan' | 'demo';
 
 // Demo Green Cart precincts (the mock surface uses precinct "40").
 const DEMO_PRECINCTS = ['40', '52', '73', '101'];
@@ -11,6 +15,7 @@ const DEMO_PRECINCTS = ['40', '52', '73', '101'];
 export default function App() {
   const { t, i18n } = useTranslation();
   const { config, complete, update, reset } = useVendorConfig();
+  const [surface, setSurface] = useState<Surface>('manhattan');
 
   const typeOpt = config.vendorType ? findVendorType(config.vendorType) : undefined;
   const licOpt =
@@ -92,8 +97,20 @@ export default function App() {
                   {config.greenCartPrecinct ? ` · Precinct ${config.greenCartPrecinct}` : ''}
                 </b>
               </div>
+              <div className="toggle">
+                <button className={surface === 'manhattan' ? 'on' : ''} onClick={() => setSurface('manhattan')}>
+                  Manhattan
+                </button>
+                <button className={surface === 'demo' ? 'on' : ''} onClick={() => setSurface('demo')}>
+                  Demo grid
+                </button>
+              </div>
             </div>
-            <MapView config={complete} typeEmoji={typeOpt.emoji} licenseTitle={licOpt.title} />
+            {surface === 'manhattan' ? (
+              <RealMapView config={complete} typeEmoji={typeOpt.emoji} licenseTitle={licOpt.title} />
+            ) : (
+              <MapView config={complete} typeEmoji={typeOpt.emoji} licenseTitle={licOpt.title} />
+            )}
           </>
         )}
       </main>
