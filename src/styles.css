@@ -61,6 +61,31 @@ header .kicker {
   color: #9fc3e0;
   font-weight: 700;
 }
+.brandrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sbslogo {
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: 5px;
+  overflow: hidden;
+  font-weight: 800;
+  font-size: 12px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+.sbslogo-nyc {
+  background: #fff;
+  color: var(--navy);
+  padding: 4px 5px;
+}
+.sbslogo-sbs {
+  background: var(--accent);
+  color: #fff;
+  padding: 4px 5px;
+}
 header h1 {
   font-size: 22px;
   font-weight: 800;
@@ -383,6 +408,56 @@ p.qs {
   border-radius: 8px;
   padding: 7px 9px;
   margin-top: 10px;
+}
+.timecap {
+  font-size: 11px;
+  color: var(--gray);
+  font-style: italic;
+}
+.res-heading {
+  font-size: 13px;
+  font-weight: 800;
+  margin: 18px 0 8px;
+}
+.res-foot {
+  font-size: 11px;
+  color: var(--gray);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+.layers-details {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+.layers-details > summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray);
+  padding: 10px 12px;
+  list-style: none;
+}
+.layers-details > summary::-webkit-details-marker {
+  display: none;
+}
+.layers-details > summary::before {
+  content: '▸ ';
+  color: var(--accent);
+}
+.layers-details[open] > summary::before {
+  content: '▾ ';
+}
+.layers-details .opcard {
+  margin: 0 10px 10px;
+}
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  font-size: 9px;
+  min-height: 18px;
+}
+.maplibregl-ctrl-attrib-inner {
+  font-size: 9px;
 }
 .res-links {
   margin-top: 14px;

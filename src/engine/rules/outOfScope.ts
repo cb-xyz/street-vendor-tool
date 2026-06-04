@@ -9,6 +9,23 @@ import { CITES } from '../citations';
 import type { Rule } from '../types';
 
 export const outOfScope: Rule = ({ facts }) => {
+  if (facts.outsideNyc) {
+    return {
+      stop: true,
+      status: 'outOfScope',
+      title: 'Outside New York City',
+      reasons: [
+        {
+          icon: '🗺️',
+          code: 'OUTSIDE_NYC',
+          title: 'Not covered by this tool',
+          detail:
+            'This spot is outside the five boroughs (or in the water). This tool only covers vending on NYC public sidewalks.',
+        },
+      ],
+    };
+  }
+
   if (facts.inPark) {
     return {
       stop: true,

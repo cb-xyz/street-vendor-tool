@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import type { VendorConfig, Verdict, VendorType } from '../engine/types';
+import type { Verdict } from '../engine/types';
 
 const STATUS_STYLE: Record<Verdict['status'], { color: string; badge: string }> = {
   permitted: { color: 'var(--green)', badge: '✅' },
@@ -10,13 +10,12 @@ const STATUS_STYLE: Record<Verdict['status'], { color: string; badge: string }> 
 
 interface Props {
   verdict: Verdict;
-  config: VendorConfig;
   locationLabel: string;
   typeEmoji: string;
   licenseTitle: string;
 }
 
-export function ResultCard({ verdict, config, locationLabel, typeEmoji, licenseTitle }: Props) {
+export function ResultCard({ verdict, locationLabel, typeEmoji, licenseTitle }: Props) {
   const { t } = useTranslation();
   const style = STATUS_STYLE[verdict.status];
 
@@ -66,52 +65,6 @@ export function ResultCard({ verdict, config, locationLabel, typeEmoji, licenseT
           </div>
         )}
       </div>
-      <ResourceLinks vendorType={config.vendorType} />
-    </div>
-  );
-}
-
-function ResourceLinks({ vendorType }: { vendorType: VendorType }) {
-  const { t } = useTranslation();
-  const isFood = vendorType === 'food';
-  return (
-    <div className="res-links" style={{ padding: '0 15px 14px' }}>
-      <a
-        href="https://www.nyc.gov/site/dsny/what-we-do/cleaning/street-vending-enforcement.page"
-        target="_blank"
-        rel="noopener"
-      >
-        📍{' '}
-        <span>
-          {t('link_officialMaps')}
-          <small>{t('link_officialMaps_sub')}</small>
-        </span>
-        <span className="arr">↗</span>
-      </a>
-      <a
-        href={
-          isFood
-            ? 'https://www.nyc.gov/site/doh/business/food-operators/mobile-and-temporary-food-vendors.page'
-            : 'https://www.nyc.gov/site/dca/businesses/license-checklist-general-vendor.page'
-        }
-        target="_blank"
-        rel="noopener"
-      >
-        📝{' '}
-        <span>
-          {isFood ? t('link_apply_food') : t('link_apply_merch')}
-          <small>{isFood ? t('link_apply_food_sub') : t('link_apply_merch_sub')}</small>
-        </span>
-        <span className="arr">↗</span>
-      </a>
-      <a href="https://portal.311.nyc.gov/article/?kanumber=KA-02152" target="_blank" rel="noopener">
-        ☎️{' '}
-        <span>
-          {t('link_311')}
-          <small>{t('link_311_sub')}</small>
-        </span>
-        <span className="arr">↗</span>
-      </a>
     </div>
   );
 }

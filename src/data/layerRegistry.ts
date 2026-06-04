@@ -37,9 +37,12 @@ export const LAYER_REGISTRY: LayerInfo[] = [
   { id: 'parks', label: 'Parks (out of scope)', status: 'illustrative', dataset: 'DS-032', feeds: '§10 step 1 — out of scope' },
   { id: 'greenCart', label: 'Green Cart precincts', status: 'illustrative', dataset: 'DS-005', feeds: '§10 step 3 — Green Cart geography' },
   { id: 'mfvRestricted', label: 'DOHMH restricted streets', status: 'illustrative', dataset: 'DS-001', feeds: '§10 step 4 — MFV time/day limits' },
+  { id: 'hydrant', label: 'Fire hydrants', status: 'illustrative', dataset: 'DS-036', feeds: '§10 step 5 — hydrant buffer (distance unverified)' },
+  { id: 'scaffolding', label: 'Scaffolding / sidewalk sheds', status: 'illustrative', dataset: 'DOB', feeds: '§10 step 5b — obstruction advisory' },
 
   // --- Pending (not yet integrated; rule stays dormant until data arrives) ---
   { id: 'gvStreets', label: 'DCWP General Vendor street restrictions', status: 'pending', dataset: 'DS-007', feeds: '§10 step 3 — authoritative GV permitted/prohibited streets' },
+  { id: 'sidewalks', label: 'Sidewalk geometry (is this point a sidewalk?)', status: 'pending', dataset: 'DS-041', feeds: 'Confines vending to actual sidewalks — needs a spatial service citywide' },
   { id: 'sidewalkWidth', label: 'Sidewalk widths', status: 'pending', dataset: 'DS-040/041', feeds: '§10 step 6 — 12 ft clearance' },
   { id: 'pedPlazas', label: 'Pedestrian plazas', status: 'pending', dataset: 'DS-026', feeds: '§10 step 1 — out of scope' },
   { id: 'buffersOther', label: 'Other buffers (crosswalk, corner, driveway, building entrance, café, bus shelter, newsstand, ADA ramp, bus stop, hospital)', status: 'pending', dataset: 'DS-015/027/029/031/035…', feeds: '§10 step 5 — distance buffers' },

@@ -23,6 +23,8 @@ export const CITES = {
   BUS_STOP: 'NYC Admin Code §17-315(e) / §20-465(e)',
   HOSPITAL_NO_STANDING: 'NYC Admin Code §17-315(e) / §20-465(e)',
   METERED_PARKING: '34 RCNY §4-08(h)(7)',
+  HYDRANT: 'No-contact rule §17-315(b)/§20-465(c); distance buffer pending confirmation (DS-036)',
+  SCAFFOLDING: 'DOB sidewalk shed permits (advisory — may obstruct the sidewalk)',
   ZONING_EXCLUSION: 'NYC Admin Code §20-465(g)(1)',
   MIDTOWN_CORE: 'NYC Admin Code §20-465(g)(1)',
   WTC_ZONE: 'NYC Admin Code §17-315(k)(1) / §20-465(g)(2)',

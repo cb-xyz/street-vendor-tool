@@ -54,6 +54,27 @@ export const distanceBuffers: Rule = ({ config, facts }) => {
     });
   }
 
+  if (facts.withinHydrantBuffer) {
+    // Vendors may not block/contact a hydrant; a specific stay-away DISTANCE is not yet confirmed
+    // against the code, so this is flagged unverified rather than asserted as a hard buffer.
+    return {
+      stop: true,
+      status: 'prohibited',
+      title: 'Fire hydrant',
+      unverified: true,
+      reasons: [
+        {
+          icon: '🚒',
+          code: 'HYDRANT',
+          title: 'Keep clear of the fire hydrant',
+          detail:
+            'Vending must not block or touch a fire hydrant. The exact stay-away distance is pending legal confirmation — treat this spot as off-limits and verify.',
+          citation: CITES.HYDRANT,
+        },
+      ],
+    };
+  }
+
   if (facts.withinBuildingEntranceBuffer) {
     return prohibited({
       icon: '🚪',

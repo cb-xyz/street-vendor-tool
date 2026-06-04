@@ -9,10 +9,16 @@ import { BOROUGHS, SUBWAY_ENTRANCES, ZONES } from '../data/nyc';
 import type { LayerStatus } from '../data/layerRegistry';
 import { fromDateTimeInputs, nycNow } from '../state/evalTime';
 import { ResultCard } from './ResultCard';
+import { VendorResources } from './VendorResources';
 
 // OpenFreeMap — open vector tiles, no API key (good for the pilot per CLAUDE.md).
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 const NYC_CENTER: [number, number] = [-73.95, 40.7];
+// Bounding box that keeps the map over NYC (no New Jersey / Long Island / far-out zoom).
+const NYC_BOUNDS: maplibregl.LngLatBoundsLike = [
+  [-74.33, 40.46], // SW
+  [-73.65, 40.94], // NE
+];
 
 const ZONE_COLORS: Record<string, string> = {
   park: '#9b958a',
@@ -22,6 +28,8 @@ const ZONE_COLORS: Record<string, string> = {
   commercial: '#e8821a',
   greenCart: '#1a7f37',
   mfvRestricted: '#9a6b00',
+  hydrant: '#b42318',
+  scaffolding: '#7c3aed',
 };
 
 const STATUS_ICON: Record<LayerStatus, string> = {
@@ -58,20 +66,30 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
   const markerRef = useRef<maplibregl.Marker | null>(null);
   const resolver = useMemo(() => new NycPilotResolver(), []);
 
-  const isFood = config.vendorType === 'food';
+  // Time applies to all vendors (food restricted streets/seasonal; merch Dyker Heights).
   const [mode, setMode] = useState<'live' | 'planning'>('live');
   const initial = todayInputs();
   const [date, setDate] = useState(initial.date);
   const [time, setTime] = useState(initial.time);
   const [selected, setSelected] = useState<Selected | null>(null);
 
-  const at: EvalTime = useMemo(() => {
-    if (!isFood) return nycNow();
-    return mode === 'live' ? nycNow() : fromDateTimeInputs(date, time);
-  }, [isFood, mode, date, time]);
+  const at: EvalTime = useMemo(
+    () => (mode === 'live' ? nycNow() : fromDateTimeInputs(date, time)),
+    [mode, date, time],
+  );
 
   const evalRef = useRef({ config, at, resolver });
   evalRef.current = { config, at, resolver };
+
+  const checkPoint = (ll: LngLat, map: maplibregl.Map) => {
+    const { config: cfg, at: when, resolver: res } = evalRef.current;
+    const facts = res.resolve(ll);
+    const verdict = evaluate(cfg, facts, when);
+    const nearestSubwayFt = res.nearestSubwayMeters(ll) / 0.3048;
+    setSelected({ at: ll, verdict, nearestSubwayFt });
+    if (!markerRef.current) markerRef.current = new maplibregl.Marker({ color: '#b42318' });
+    markerRef.current.setLngLat(ll).addTo(map);
+  };
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -80,12 +98,34 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       style: STYLE_URL,
       center: NYC_CENTER,
       zoom: 9.7,
-      attributionControl: { compact: true },
+      minZoom: 9.3,
+      maxZoom: 18,
+      maxBounds: NYC_BOUNDS,
+      attributionControl: false,
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+    map.addControl(
+      new maplibregl.AttributionControl({ compact: true, customAttribution: '© OpenStreetMap' }),
+      'bottom-left',
+    );
+    // "Find my location" — bottom-right per request.
+    const geolocate = new maplibregl.GeolocateControl({
+      positionOptions: { enableHighAccuracy: true },
+      trackUserLocation: false,
+      showUserLocation: true,
+    });
+    map.addControl(geolocate, 'bottom-right');
+    geolocate.on('geolocate', (e: GeolocationPosition) => {
+      checkPoint({ lng: e.coords.longitude, lat: e.coords.latitude }, map);
+    });
 
     map.on('load', () => {
+      // Collapse the attribution to a discrete "ⓘ" (expands on click) instead of a long line.
+      containerRef.current
+        ?.querySelector('.maplibregl-ctrl-attrib')
+        ?.classList.remove('maplibregl-compact-show');
+
       map.addSource('boroughs', { type: 'geojson', data: BOROUGHS as unknown as GeoJSON.FeatureCollection });
       map.addLayer({
         id: 'boroughs-outline',
@@ -93,7 +133,6 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
         source: 'boroughs',
         paint: { 'line-color': '#0a3d62', 'line-width': 1, 'line-opacity': 0.4 },
       });
-
       map.addSource('zones', { type: 'geojson', data: ZONES as unknown as GeoJSON.FeatureCollection });
       map.addLayer({
         id: 'zones-fill',
@@ -110,6 +149,8 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
             'commercial', ZONE_COLORS.commercial!,
             'greenCart', ZONE_COLORS.greenCart!,
             'mfvRestricted', ZONE_COLORS.mfvRestricted!,
+            'hydrant', ZONE_COLORS.hydrant!,
+            'scaffolding', ZONE_COLORS.scaffolding!,
             '#888',
           ],
           'fill-opacity': 0.28,
@@ -121,7 +162,6 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
         source: 'zones',
         paint: { 'line-color': '#444', 'line-width': 1, 'line-dasharray': [2, 2] },
       });
-
       map.addSource('subway', { type: 'geojson', data: SUBWAY_ENTRANCES as unknown as GeoJSON.FeatureCollection });
       map.addLayer({
         id: 'subway-dots',
@@ -135,16 +175,7 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       });
     });
 
-    map.on('click', (e) => {
-      const ll: LngLat = { lng: e.lngLat.lng, lat: e.lngLat.lat };
-      const { config: cfg, at: when, resolver: res } = evalRef.current;
-      const facts = res.resolve(ll);
-      const verdict = evaluate(cfg, facts, when);
-      const nearestSubwayFt = res.nearestSubwayMeters(ll) / 0.3048;
-      setSelected({ at: ll, verdict, nearestSubwayFt });
-      if (!markerRef.current) markerRef.current = new maplibregl.Marker({ color: '#b42318' });
-      markerRef.current.setLngLat(ll).addTo(map);
-    });
+    map.on('click', (e) => checkPoint({ lng: e.lngLat.lng, lat: e.lngLat.lat }, map));
 
     return () => {
       map.remove();
@@ -164,24 +195,23 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
 
   return (
     <>
-      {isFood && (
-        <div className="timebar">
-          <div className="toggle">
-            <button className={mode === 'live' ? 'on' : ''} onClick={() => setMode('live')}>
-              {t('view_live')}
-            </button>
-            <button className={mode === 'planning' ? 'on' : ''} onClick={() => setMode('planning')}>
-              {t('view_planning')}
-            </button>
-          </div>
-          {mode === 'planning' && (
-            <>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Date" />
-              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Time" />
-            </>
-          )}
+      <div className="timebar">
+        <div className="toggle">
+          <button className={mode === 'live' ? 'on' : ''} onClick={() => setMode('live')}>
+            {t('view_live')}
+          </button>
+          <button className={mode === 'planning' ? 'on' : ''} onClick={() => setMode('planning')}>
+            {t('view_planning')}
+          </button>
         </div>
-      )}
+        {mode === 'planning' && (
+          <>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Date" />
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Time" />
+          </>
+        )}
+        <span className="timecap">Some rules change by day &amp; time</span>
+      </div>
 
       <div className="legend">
         <span style={{ background: 'var(--green-bg)', color: 'var(--green)' }}>
@@ -203,48 +233,44 @@ export function RealMapView({ config, typeEmoji, licenseTitle }: Props) {
       </div>
 
       <div className="map" ref={containerRef} style={{ aspectRatio: '1 / 1.15' }} />
-      <p className="tap-hint">Tap anywhere in the five boroughs to check that spot for your license.</p>
+      <p className="tap-hint">Tap anywhere in the five boroughs — or use the locate button — to check a spot.</p>
 
       {selected && (
         <ResultCard
           verdict={selected.verdict}
-          config={config}
           locationLabel={`Dropped pin · ${Math.round(selected.nearestSubwayFt)} ft from nearest subway`}
           typeEmoji={typeEmoji}
           licenseTitle={licenseTitle}
         />
       )}
 
-      <LayerProvenance resolver={resolver} />
+      <VendorResources vendorType={config.vendorType} />
 
-      <div className="disc">
-        <b>Citywide pilot.</b> Subway-entrance buffers and borough boundaries use real City data;
-        special zones are encoded from the Admin Code; commercial zoning, parks, Green Cart, and
-        DOHMH restricted streets are illustrative pending licensed City layers, and several rules are
-        not yet integrated — see the layer list and each result's data note. Always confirm with 311.
-      </div>
-    </>
-  );
-}
-
-function LayerProvenance({ resolver }: { resolver: NycPilotResolver }) {
-  return (
-    <div className="opcard" style={{ marginTop: 14 }}>
-      <h4>Data layers — integration status</h4>
-      {resolver.layers().map((l) => (
-        <div className="rule" key={l.id}>
-          <span className="ic">{STATUS_ICON[l.status]}</span>
-          <span className="tx">
-            <b>
-              {l.label} <span className="pill">{l.status}</span>
-            </b>
-            <span>
-              {l.feeds}
-              {l.dataset ? ` · ${l.dataset}` : ''}
-            </span>
-          </span>
+      <details className="layers-details">
+        <summary>Data layers &amp; coverage (for reviewers)</summary>
+        <div className="opcard">
+          {resolver.layers().map((l) => (
+            <div className="rule" key={l.id}>
+              <span className="ic">{STATUS_ICON[l.status]}</span>
+              <span className="tx">
+                <b>
+                  {l.label} <span className="pill">{l.status}</span>
+                </b>
+                <span>
+                  {l.feeds}
+                  {l.dataset ? ` · ${l.dataset}` : ''}
+                </span>
+              </span>
+            </div>
+          ))}
+          <p className="mocknote">
+            Subway buffers and borough boundaries use real City data; special zones are encoded from
+            the Admin Code; commercial zoning, parks, Green Cart, DOHMH restricted streets, hydrants
+            and scaffolding are illustrative samples pending licensed City layers. Citywide hydrant
+            and sidewalk coverage needs a spatial-query service in production.
+          </p>
         </div>
-      ))}
-    </div>
+      </details>
+    </>
   );
 }
