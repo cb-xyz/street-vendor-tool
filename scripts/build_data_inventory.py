@@ -1,179 +1,157 @@
-"""Generate docs/Data_Sources_and_Gaps.xlsx — the data inventory + gap list."""
+"""Generate docs/Data_Sources_and_Gaps.xlsx — download links + data inventory + gaps."""
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.worksheet.hyperlink import Hyperlink
 
 NAVY = '0A3D62'
-WHITE = 'FFFFFF'
-HEADER_FONT = Font(name='Arial', bold=True, color=WHITE, size=11)
+HEADER_FONT = Font(name='Arial', bold=True, color='FFFFFF', size=11)
 HEADER_FILL = PatternFill('solid', fgColor=NAVY)
 BASE_FONT = Font(name='Arial', size=10)
+LINK_FONT = Font(name='Arial', size=10, color='1155CC', underline='single')
 WRAP_TOP = Alignment(wrap_text=True, vertical='top')
 THIN = Side(style='thin', color='D8D2C4')
 BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
 STATUS_FILL = {
-    'In use (live)': 'CDEBD0',
-    'Encoded from statute': 'DDE7F0',
-    'Illustrative placeholder': 'FCEFC7',
-    'Missing — needed': 'FBE3DF',
-    'Blocked (legal)': 'E4E2DA',
+    'Live': 'CDEBD0',
+    'Statutory': 'DDE7F0',
+    'Illustrative': 'FCEFC7',
+    'Needed': 'FBE3DF',
+    'Pending': 'ECEAE3',
 }
 
-# Dataset ID | Layer | Owner | Feeds (rule) | Status | Source / how obtained | Notes
-INVENTORY = [
-    ['DS-034', 'Subway Entrances & Exits (2,120 pts citywide)', 'MTA / NY State', '10 ft no-vend buffer (both vendor types)', 'In use (live)',
-     'NY Open Data resource i9wp-a4ja — data.ny.gov (fetched 2026-06-04, bundled)', 'Real data, all five boroughs. Drives the subway exclusion.'],
-    ['—', 'Borough Boundaries', 'NYC DCP', 'Determines which borough a point is in (food borough permits)', 'In use (live)',
-     'NYC Open Data resource gthc-hcne — data.cityofnewyork.us (fetched + simplified, bundled)', 'Real data; simplified for fast point-in-polygon.'],
-    ['—', 'Basemap (streets, labels)', 'OpenStreetMap / OpenFreeMap', 'Visual base layer', 'In use (live)',
-     'OpenFreeMap Positron vector tiles (no key, no usage limits)', 'Open data; not a City source. Could swap to a City basemap later.'],
+# layer, governs/used-for, agency, dataset id, status, format/how, URL
+LINKS = [
+    # --- In use now (real data) ---
+    ['Sidewalks (planimetric)', 'Where vending is physically allowed — the green areas', 'DCP', 'vfx9-tbb6', 'Live',
+     'NYC Open Data — use the Export button (GeoJSON or Shapefile)', 'https://data.cityofnewyork.us/d/vfx9-tbb6'],
+    ['Zoning Districts (C4/C5/C6)', 'Commercial-zone exclusion for General Vendors', 'DCP', 'nyzd', 'Live',
+     'DCP "BYTES of the Big Apple" — Shapefile (nyzd)', 'https://www.nyc.gov/content/planning/pages/resources/datasets/gis-zoning-features'],
+    ['Parks Properties', 'Out of scope (parks use a separate DPR permit system)', 'DPR', 'enfh-gkve', 'Live',
+     'NYC Open Data — Export GeoJSON', 'https://data.cityofnewyork.us/d/enfh-gkve'],
+    ['Subway Entrances & Exits', '10 ft no-vend buffer (both vendor types)', 'MTA', 'i9wp-a4ja', 'Live',
+     'NY State Open Data — Export CSV/GeoJSON', 'https://data.ny.gov/d/i9wp-a4ja'],
+    ['Fire Hydrants', '10 ft no-vend buffer (distance pending legal confirm)', 'NYCDEP', '6pui-xhxz', 'Live',
+     'NYC Open Data — Export CSV (has lat/long)', 'https://data.cityofnewyork.us/d/6pui-xhxz'],
+    ['Borough Boundaries', 'Borough-specific permit geography', 'DCP', 'gthc-hcne', 'Live',
+     'NYC Open Data — Export GeoJSON', 'https://data.cityofnewyork.us/d/gthc-hcne'],
+    ['Basemap tiles', 'Map background', 'OpenStreetMap / OpenFreeMap', '—', 'Live',
+     'Open vector tiles, no API key', 'https://openfreemap.org'],
 
-    ['§20-465(g)(1)', 'Midtown Core zone', 'DCWP (NYC Admin Code)', 'Blue-license-only area (GV)', 'Encoded from statute',
-     'Boundary text in the Admin Code — encoded as an approximate polygon', 'No file needed; geometry is approximate, confirm exact lines.'],
-    ['§20-465(g)(4)', 'Downtown Flushing zone', 'DCWP (NYC Admin Code)', 'Standard-GV exclusion', 'Encoded from statute',
-     'Boundary text in the Admin Code — encoded as an approximate polygon', 'No file needed; approximate.'],
-    ['§20-465(g)(5)', 'Dyker Heights zone (seasonal)', 'DCWP (NYC Admin Code)', 'Holiday-hours GV restriction', 'Encoded from statute',
-     'Boundary text in the Admin Code — encoded as an approximate polygon', 'No file needed; approximate.'],
+    # --- The legal "where can vendors operate" sources (gated / agency) ---
+    ['DCWP General Vendor street restrictions', 'AUTHORITATIVE permitted/prohibited GV streets (the existing DCWP map)', 'DCWP', 'DS-007', 'Needed',
+     'Public ArcGIS map (linked from DSNY page); WRITTEN LICENSE required for production use', 'https://www.nyc.gov/site/dsny/what-we-do/cleaning/street-vending-enforcement.page'],
+    ['DOHMH Restricted Streets (Mobile Food)', 'Food time/day street restrictions (the #1 food input)', 'DOHMH', 'DS-001', 'Needed',
+     'Public map online; GIS layer with hours/days via DOHMH agency request', 'https://a816-dohbesp.nyc.gov/IndicatorPublic/mobilefoodvending'],
+    ['Green Cart precincts', 'Green Cart authorized geography (police-precinct based)', 'DOHMH', 'DS-005', 'Needed',
+     'Precinct list/polygons via DOHMH agency request (Local Law 9 of 2008)', 'https://www.nyc.gov/site/doh/business/food-operators/mobile-and-temporary-food-vendors.page'],
 
-    ['DS-012', 'Zoning — C4 / C5 / C6 districts', 'DCP', 'Commercial-zone exclusion (GV)', 'Illustrative placeholder',
-     'Map-type dataset; not exportable as queryable GeoJSON. Using sample polygons.', 'NEED the licensed GIS Zoning Features export to be accurate.'],
-    ['DS-032', 'Parks Properties', 'DPR', 'Out-of-scope mask (parks)', 'Illustrative placeholder',
-     'Using sample polygons (Central Park, Prospect Park)', 'NEED DPR parks polygons for full coverage.'],
-    ['DS-005', 'Green Cart precincts', 'DOHMH', 'Green Cart authorized geography', 'Illustrative placeholder',
-     'Using one sample precinct polygon', 'NEED DOHMH Green Cart precinct polygons (or a precinct list to convert).'],
-    ['DS-001', 'DOHMH Restricted Streets (hours/days)', 'DOHMH', 'Food time/day restrictions (the #1 food input)', 'Illustrative placeholder',
-     'Using one sample restricted street', 'NEED DOHMH GIS layer with per-segment hours/days (or PDF to geocode).'],
-    ['DS-036', 'Fire hydrants', 'FDNY / DEP', 'Hydrant no-vend buffer', 'Illustrative placeholder',
-     'Map-type dataset, ~100k points — too large to bundle. Using sample point.', 'NEED a hydrant layer via a spatial service. Stay-away DISTANCE also unverified.'],
-    ['—', 'Scaffolding / sidewalk sheds', 'DOB', 'Obstruction advisory', 'Illustrative placeholder',
-     'Using sample point', 'NEED DOB active sidewalk-shed permits (updates frequently).'],
-
-    ['DS-007', 'General Vendor street restrictions', 'DCWP', 'Authoritative GV permitted/prohibited streets', 'Missing — needed',
-     'Public ArcGIS map exists but not ingested', 'NEED a written license to use in production. This IS the existing DCWP map; required to replace it.'],
-    ['DS-041', 'Sidewalk polygons (planimetrics)', 'DCP / DOT', 'Confines vending to actual sidewalks; green "allowed" areas', 'Missing — needed',
-     'Not exposed as a client-usable service; full layer is very large', 'NEED the sidewalk shapefile + a spatial backend. Blocker for the green allowed-area map.'],
-    ['DS-040', 'Sidewalk widths', 'DOT / community', '12 ft clearance rule', 'Missing — needed', 'Not yet sourced', 'NEED widths per segment (or derive from DS-041).'],
-    ['DS-013', 'Street Centerline (CSCL)', 'DCP', 'Base join key for every street-level rule', 'Missing — needed',
-     'Public, refreshes daily', 'NEED to ingest as the production base layer.'],
-    ['DS-014', 'LION street network', 'DCP', 'Partial-block "from X to Y" segments', 'Missing — needed', 'Public', 'NEED for sub-segment encoding of restricted streets.'],
-    ['DS-015', 'Building Footprints', 'DCP', '20 ft building-entrance buffer', 'Missing — needed', 'Public', 'NEED (entrances approximated from footprint edge).'],
-    ['DS-026', 'Pedestrian Plazas', 'DOT', 'Out-of-scope mask (plazas)', 'Missing — needed', 'Public', 'NEED plaza polygons.'],
-    ['DS-027', 'Bus Stop Shelters', 'DOT', '5 ft GV buffer', 'Missing — needed', 'Public', 'NEED shelter locations.'],
-    ['DS-028', 'No-Standing signs', 'DOT', 'Hospital no-standing zones', 'Missing — needed', 'Public', 'NEED sign data (paired with hospital locations).'],
-    ['DS-029', 'Curb cuts / driveways', 'DOT', '10 ft driveway buffer', 'Missing — needed', 'No clean citywide layer found', 'GAP — may need OSM/footprint approximation; flag to vendors.'],
-    ['DS-031', 'Crosswalks (derived)', 'DOT / from CSCL', '10 ft MFV crosswalk buffer', 'Missing — needed', 'Derive from CSCL', 'NEED CSCL first.'],
-    ['DS-035', 'MTA Bus Stops', 'MTA', 'No vending within a bus stop', 'Missing — needed', 'Public', 'NEED stop boundaries.'],
-    ['DS-003', 'Restricted Area Permit zones', 'DOHMH', 'Separate food SKU (high-traffic zones)', 'Missing — needed', 'Confirm scope', 'NEED to confirm if in scope + boundaries.'],
-    ['DS-023', 'ECB / OATH citation records', 'DSNY', 'Evaluation metrics (not map logic)', 'Missing — needed', 'Gated', 'NEED for measuring impact (Deliverable metrics).'],
-
-    ['C-1', 'World Trade Center zone', 'DCWP / DOHMH (Admin Code)', 'Hard prohibition + MFV street exceptions', 'Blocked (legal)',
-     'Conflict C-1: docs say Barclay St; 2023 DCWP guide says Vesey St', 'NOT a file — needs SBS Legal to confirm the controlling boundary before encoding.'],
+    # --- Distance-buffer / out-of-scope layers (public, not yet integrated) ---
+    ['Building Footprints', '20 ft building/store-entrance buffer', 'DCP', '5zhs-2jue', 'Pending',
+     'NYC Open Data — Export GeoJSON', 'https://data.cityofnewyork.us/d/5zhs-2jue'],
+    ['Bicycle Routes / Lanes', 'No vending in bike lanes', 'DOT', 'mzxg-pwib', 'Pending',
+     'NYC Open Data — Export GeoJSON', 'https://data.cityofnewyork.us/d/mzxg-pwib'],
+    ['Bus Stop Shelters', '5 ft GV buffer', 'DOT', 't4f2-8md7', 'Pending',
+     'NYC Open Data — Export GeoJSON', 'https://data.cityofnewyork.us/d/t4f2-8md7'],
+    ['Pedestrian Plazas (polygon)', 'Out of scope (concession-only)', 'DOT', 'k5k6-6jex', 'Pending',
+     'NYC Open Data — Export GeoJSON', 'https://data.cityofnewyork.us/d/k5k6-6jex'],
+    ['Parking Regulation Locations & Signs', 'No-standing zones / metered-parking rule', 'DOT', 'nfid-uabd', 'Pending',
+     'NYC Open Data — Export', 'https://data.cityofnewyork.us/d/nfid-uabd'],
+    ['Street Centerline (CSCL)', 'Base join key; crosswalk & corner buffers', 'DCP', 'DS-013', 'Pending',
+     'NYC Open Data — search "NYC Street Centerline (CSCL)"', 'https://opendata.cityofnewyork.us/'],
+    ['Sidewalk widths', '12 ft clearance rule', 'DOT / community', 'DS-040', 'Pending',
+     'Derive from the sidewalk polygons (above) or community data', 'https://data.cityofnewyork.us/d/vfx9-tbb6'],
+    ['Scaffolding / sidewalk sheds', 'Obstruction advisory', 'DOB', '—', 'Pending',
+     'NYC Open Data — search "DOB NOW: Build – Approved Permits" (filter Sidewalk Shed)', 'https://opendata.cityofnewyork.us/'],
+    ['Newsstands', '5 ft GV buffer', 'DCWP', 'DS-—', 'Pending',
+     'DCWP licensed-premises / NYC Open Data — search "Newsstand"', 'https://opendata.cityofnewyork.us/'],
+    ['Sidewalk cafés', '20 ft buffer', 'DCWP', 'DS-—', 'Pending',
+     'NYC Open Data — search "Sidewalk Café"', 'https://opendata.cityofnewyork.us/'],
 ]
 
-# Needed-from-city summary (subset): Dataset | Layer | Agency | Why we need it | Ask / blocker | Priority
 NEEDED = [
-    ['DS-001', 'DOHMH Restricted Streets (GIS, hours/days)', 'DOHMH', 'The single most important food input; powers the time view', 'Request GIS export with per-segment hours/days', 'P1'],
-    ['DS-005', 'Green Cart precincts', 'DOHMH', 'Show Green Cart vendors their authorized area', 'Request precinct polygons (or list to convert)', 'P1'],
-    ['DS-007', 'General Vendor street restrictions', 'DCWP', 'Authoritative GV legal streets; required to replace the DCWP map', 'Execute written license; confirm consume-live-vs-static', 'P1'],
-    ['DS-012', 'GIS Zoning Features (C4/C5/C6)', 'DCP', 'Accurate commercial-zone exclusion for GV', 'Licensed GIS export (not the map-only service)', 'P1'],
-    ['DS-013', 'Street Centerline (CSCL)', 'DCP', 'Base join key for every street rule', 'Confirm ingest cadence (daily refresh)', 'P1'],
-    ['DS-034', 'Subway Entrances', 'MTA', 'Already in use — confirm we may use it in production', 'Confirm license/currency of the Open Data version', 'P1 (have data)'],
-    ['DS-041', 'Sidewalk polygons (planimetrics)', 'DCP / DOT', 'Green "where you CAN vend" areas; confine vending to sidewalks', 'Provide shapefile + agree on a spatial backend/tiles', 'P1 (blocks green map)'],
-    ['DS-040', 'Sidewalk widths', 'DOT', '12 ft clearance rule', 'Provide widths or confirm derive from DS-041', 'P2'],
-    ['DS-015 / 027 / 028 / 035 / 026 / 031 / 029',
-     'Buffers: building entrances, bus shelters, no-standing, bus stops, plazas, crosswalks, driveways', 'DCP / DOT / MTA',
-     'Distance-buffer prohibitions (§10 step 5) and out-of-scope masks', 'Provide layers / confirm DOT-internal driveway data', 'P2'],
-    ['DS-036', 'Fire hydrants', 'FDNY / DEP', 'Hydrant no-vend buffer', 'Provide hydrant layer; CONFIRM the legal stay-away distance', 'P2'],
-    ['—', 'Active sidewalk-shed (scaffolding) permits', 'DOB', 'Flag spots physically blocked by scaffolding', 'Provide a feed (changes frequently)', 'P3'],
-    ['DS-023', 'ECB / OATH citation records', 'DSNY', 'Evaluation metrics for the pilot', 'Provide aggregate citation data', 'P2'],
-    ['C-1', 'WTC zone boundary', 'SBS Legal / DCWP', 'Encode the WTC hard-prohibition correctly', 'CONFIRM Barclay vs Vesey St north border (§20-465(g)(2))', 'P1 (legal, not data)'],
-    ['C-6', 'Tool relationship to existing maps', 'SBS / DSNY', 'Decides whether we replace / federate / link agency maps', 'CONFIRM the intended relationship — gates the data architecture', 'P1 (decision)'],
+    ['DS-007 — DCWP General Vendor street restrictions', 'DCWP', 'Authoritative legal streets; required to replace the DCWP map', 'Execute the written license; confirm live-service vs. static export', 'P1'],
+    ['DS-001 — DOHMH Restricted Streets (GIS)', 'DOHMH', 'The #1 food input; powers the time view', 'Request GIS export with per-segment hours/days', 'P1'],
+    ['DS-005 — Green Cart precincts', 'DOHMH', 'Where Green Cart vendors may operate', 'Request precinct polygons (or list to convert)', 'P1'],
+    ['Buffers: building entrances, bike lanes, bus shelters, plazas, no-standing, crosswalks, bus stops', 'DCP / DOT / MTA', 'Distance-buffer prohibitions + out-of-scope masks', 'Ingest the public layers (links on the first sheet); derive crosswalks from CSCL', 'P2'],
+    ['Fire-hydrant stay-away distance', 'SBS Legal / FDNY', 'Engine uses 10 ft but the code only confirms a no-contact rule', 'Confirm the controlling distance', 'P2'],
+    ['C-1 — WTC zone boundary', 'SBS Legal / DCWP', 'Encode the WTC hard prohibition correctly', 'Confirm Barclay vs. Vesey St (§20-465(g)(2))', 'P1 (legal)'],
+    ['C-6 — Tool vs. existing agency maps', 'SBS / DSNY', 'Decides whether this replaces / federates / links the agency maps', 'Confirm the intended relationship — gates the data architecture', 'P1 (decision)'],
 ]
 
 
-def style_header(ws, ncols, row=1):
+def style_header(ws, ncols):
     for c in range(1, ncols + 1):
-        cell = ws.cell(row=row, column=c)
+        cell = ws.cell(row=1, column=c)
         cell.font = HEADER_FONT
         cell.fill = HEADER_FILL
         cell.alignment = Alignment(wrap_text=True, vertical='center')
         cell.border = BORDER
-
-
-def write_sheet(ws, headers, rows, widths, status_col=None):
-    ws.append(headers)
-    style_header(ws, len(headers))
-    for r in rows:
-        ws.append(r)
-    for ri in range(2, len(rows) + 2):
-        for ci in range(1, len(headers) + 1):
-            cell = ws.cell(row=ri, column=ci)
-            cell.font = BASE_FONT
-            cell.alignment = WRAP_TOP
-            cell.border = BORDER
-        if status_col:
-            sval = ws.cell(row=ri, column=status_col).value
-            if sval in STATUS_FILL:
-                ws.cell(row=ri, column=status_col).fill = PatternFill('solid', fgColor=STATUS_FILL[sval])
-    for i, w in enumerate(widths, start=1):
-        ws.column_dimensions[chr(64 + i)].width = w
+    ws.row_dimensions[1].height = 28
     ws.freeze_panes = 'A2'
-    ws.row_dimensions[1].height = 30
 
 
 wb = Workbook()
 
-# Sheet 1 — full inventory
-ws1 = wb.active
-ws1.title = 'Data Inventory'
-write_sheet(
-    ws1,
-    ['Dataset ID', 'Layer / Dataset', 'Owner (Agency)', 'Feeds (rule)', 'Status', 'Source / How obtained', 'Notes'],
-    INVENTORY,
-    [12, 34, 22, 34, 22, 40, 44],
-    status_col=5,
-)
+# ---- Sheet 1: Download Links (primary) ----
+ws = wb.active
+ws.title = 'Download Links'
+headers = ['Layer', 'What it governs / used for', 'Agency', 'Dataset ID', 'Status', 'How to download', 'Download URL']
+ws.append(headers)
+style_header(ws, len(headers))
+for row in LINKS:
+    ws.append(row)
+    r = ws.max_row
+    for c in range(1, len(headers) + 1):
+        cell = ws.cell(row=r, column=c)
+        cell.font = BASE_FONT
+        cell.alignment = WRAP_TOP
+        cell.border = BORDER
+    ws.cell(row=r, column=5).fill = PatternFill('solid', fgColor=STATUS_FILL.get(row[4], 'FFFFFF'))
+    url = row[6]
+    link = ws.cell(row=r, column=7)
+    if url.startswith('http'):
+        link.hyperlink = Hyperlink(ref=link.coordinate, target=url)
+        link.font = LINK_FONT
+for col, w in zip('ABCDEFG', [26, 40, 14, 12, 12, 40, 46]):
+    ws.column_dimensions[col].width = w
 
-# Sheet 2 — needed from City
+# ---- Sheet 2: Needed From City ----
 ws2 = wb.create_sheet('Needed From City')
-write_sheet(
-    ws2,
-    ['Dataset ID', 'Layer / Dataset', 'Agency', 'Why we need it', 'Ask / blocker', 'Priority'],
-    NEEDED,
-    [16, 38, 20, 40, 42, 14],
-)
+h2 = ['Dataset / item', 'Agency', 'Why we need it', 'Ask / blocker', 'Priority']
+ws2.append(h2)
+style_header(ws2, len(h2))
+for row in NEEDED:
+    ws2.append(row)
+    r = ws2.max_row
+    for c in range(1, len(h2) + 1):
+        cell = ws2.cell(row=r, column=c)
+        cell.font = BASE_FONT
+        cell.alignment = WRAP_TOP
+        cell.border = BORDER
+for col, w in zip('ABCDE', [40, 18, 38, 42, 14]):
+    ws2.column_dimensions[col].width = w
 
-# Sheet 3 — status key
+# ---- Sheet 3: Status Key ----
 ws3 = wb.create_sheet('Status Key')
 ws3.append(['Status', 'Meaning'])
 style_header(ws3, 2)
-keys = [
-    ['In use (live)', 'Real authoritative data is wired in and affects results.'],
-    ['Encoded from statute', 'Geometry encoded from the Admin Code boundary text (approximate). No file required.'],
-    ['Illustrative placeholder', 'Sample geometry standing in until the licensed/acquired dataset arrives.'],
-    ['Missing — needed', 'Not yet integrated; the rule cannot fully work until the City provides the data.'],
-    ['Blocked (legal)', 'Needs a legal/policy decision, not just a file.'],
-]
-for r in keys:
-    ws3.append(r)
-for ri in range(2, len(keys) + 2):
-    for ci in (1, 2):
-        ws3.cell(row=ri, column=ci).font = BASE_FONT
-        ws3.cell(row=ri, column=ci).alignment = WRAP_TOP
-        ws3.cell(row=ri, column=ci).border = BORDER
-    sval = ws3.cell(row=ri, column=1).value
-    if sval in STATUS_FILL:
-        ws3.cell(row=ri, column=1).fill = PatternFill('solid', fgColor=STATUS_FILL[sval])
-ws3.column_dimensions['A'].width = 24
-ws3.column_dimensions['B'].width = 70
-ws3.freeze_panes = 'A2'
-
-# Title note on sheet 1 — add a top note row? Keep header clean; add a note in A-after-last.
-note_row = len(INVENTORY) + 3
-ws1.cell(row=note_row, column=1, value='Compiled 2026-06-04 for the Street Vendor Site Selection Tool (prototype). '
-         'Statuses reflect what the live app uses. "Missing — needed" + "Illustrative placeholder" rows are the asks for the City.').font = Font(
-    name='Arial', size=9, italic=True, color='5C6670')
-ws1.merge_cells(start_row=note_row, start_column=1, end_row=note_row, end_column=7)
+for k, v in [
+    ['Live', 'Real City data is downloaded, processed, and wired into the app.'],
+    ['Statutory', 'Zone geometry encoded from the Admin Code text (Midtown Core, Flushing, Dyker Heights) — no file needed.'],
+    ['Illustrative', 'Sample geometry in the app today; swap for the real download when obtained.'],
+    ['Needed', 'Gated / agency data that governs where vendors operate — request or license required.'],
+    ['Pending', 'Public layer, not yet integrated; download link provided.'],
+]:
+    ws3.append([k, v])
+    r = ws3.max_row
+    for c in (1, 2):
+        ws3.cell(row=r, column=c).font = BASE_FONT
+        ws3.cell(row=r, column=c).alignment = WRAP_TOP
+        ws3.cell(row=r, column=c).border = BORDER
+    ws3.cell(row=r, column=1).fill = PatternFill('solid', fgColor=STATUS_FILL.get(k, 'FFFFFF'))
+ws3.column_dimensions['A'].width = 16
+ws3.column_dimensions['B'].width = 86
 
 wb.save('docs/Data_Sources_and_Gaps.xlsx')
-print('wrote docs/Data_Sources_and_Gaps.xlsx')
+print('wrote docs/Data_Sources_and_Gaps.xlsx with', len(LINKS), 'download links')
